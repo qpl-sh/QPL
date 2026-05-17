@@ -1,0 +1,50 @@
+# Rust
+target/
+
+# Go
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Node.js
+node_modules/
+dist/
+*.tsbuildinfo
+.pnpm-store/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+*.log
+coverage/
+.nyc_output/
+
+# SoftHSM2 test token storage
+softhsm-tokens/
+
+# Solidity / Foundry
+contracts/out/
+contracts/cache/
+broadcast/
+artifacts/
+typechain-types/
+
+# Qoder
+.qoder/

@@ -1,0 +1,33 @@
+[package]
+name = "qpl-node"
+description = "QPL operator node — decentralized quantum-proof service provider"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[[bin]]
+name = "qpl-node"
+path = "src/main.rs"
+
+[dependencies]
+qpl-network = { path = "../../crates/qpl-network" }
+qpl-crypto = { path = "../../crates/qpl-crypto" }
+
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+clap = { version = "4", features = ["derive"] }
+uuid = { version = "1", features = ["v4"] }
+chrono = "0.4"
+hex = "0.4"
+sha2 = "0.10"
+rand = "0.8"
+thiserror = "1"

@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package qpl.v1;
+
+// === Identifiers ===
+
+message OperatorId {
+  bytes id = 1; // 32-byte SHA-256 of ML-DSA public key
+}
+
+message RequestId {
+  string uuid = 1;
+}
+
+// === Service Types ===
+
+enum ServiceType {
+  SERVICE_TYPE_UNSPECIFIED = 0;
+  SERVICE_TYPE_SIGNING = 1;
+  SERVICE_TYPE_PROVING = 2;
+  SERVICE_TYPE_SETTLEMENT = 3;
+  SERVICE_TYPE_YIELD = 4;
+  SERVICE_TYPE_RWA = 5;
+}
+
+// === Operator Info ===
+
+message OperatorInfo {
+  OperatorId operator_id = 1;
+  bytes public_key = 2;
+  string endpoint = 3;
+  uint32 capabilities_bitmask = 4;
+  OperatorStatus status = 5;
+  uint64 stake_amount = 6;
+  uint64 registered_at = 7;
+}
+
+enum OperatorStatus {
+  OPERATOR_STATUS_UNSPECIFIED = 0;
+  OPERATOR_STATUS_JOINING = 1;
+  OPERATOR_STATUS_ACTIVE = 2;
+  OPERATOR_STATUS_DRAINING = 3;
+  OPERATOR_STATUS_SUSPENDED = 4;
+  OPERATOR_STATUS_EXITED = 5;
+}
+
+// === Fee Types ===
+
+message FeeEstimate {
+  string quote_id = 1;
+  RequestId request_id = 2;
+  uint64 base_fee_micro_usd = 3;
+  double quorum_multiplier = 4;
+  double urgency_multiplier = 5;
+  uint64 total_fee_micro_usd = 6;
+  uint32 operator_count = 7;
+  uint64 expires_at_unix = 8;
+}
+
+message FeePaymentProof {
+  uint64 chain_id = 1;
+  bytes tx_hash = 2; // 32 bytes
+  string fee_quote_id = 3;
+  uint64 block_number = 4;
+}
+
+// === Quorum ===
+
+message QuorumConfig {
+  uint32 threshold = 1;
+  uint32 total = 2;
+}
+
+// === Urgency ===
+
+enum Urgency {
+  URGENCY_STANDARD = 0;
+  URGENCY_FAST = 1;
+  URGENCY_INSTANT = 2;
+}
+
+// === Proof Configuration ===
+
+message ProofConfig {
+  uint32 security_bits = 1;
+  uint32 num_queries = 2;
+  uint32 blowup_factor = 3;
+}
+
+// === Workflow Types ===
+
+enum WorkflowType {
+  WORKFLOW_TYPE_UNSPECIFIED = 0;
+  WORKFLOW_TYPE_ESCROW = 1;
+  WORKFLOW_TYPE_DELIVERY_VS_PAYMENT = 2;
+  WORKFLOW_TYPE_PAYMENT_VS_PAYMENT = 3;
+  WORKFLOW_TYPE_CONDITIONAL_RELEASE = 4;
+}
+
+// === Health ===
+
+message HealthResponse {
+  bool healthy = 1;
+  string version = 2;
+  uint32 active_requests = 3;
+  float load_factor = 4;
+  uint64 uptime_secs = 5;
+}

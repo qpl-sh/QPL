@@ -1,0 +1,15 @@
+[package]
+name = "sql-utils"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Common utilities for Ligare (QPL)."
+repository = "https://github.com/jnodes/sovereign-quantum-ledger"
+authors = ["Ligare Contributors"]
+homepage = "https://github.com/jnodes/sovereign-quantum-ledger"
+
+[dependencies]
+sql-types = { path = "../types" }
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+hex = "0.4"

@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/qpl-crypto",
+    "crates/qpl-stark-rollup",
+    "crates/qpl-network",
+    "crates/qpl-sdk",
+    "crates/common/types",
+    "crates/common/utils",
+    "services/qpl-node",
+    "tests/e2e",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jnodes/qpl-network"
+authors = ["QPL Contributors"]
+homepage = "https://github.com/jnodes/qpl-network"

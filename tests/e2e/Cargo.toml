@@ -1,0 +1,13 @@
+[package]
+name = "qpl-e2e-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+qpl-crypto = { path = "../../crates/qpl-crypto" }
+qpl-stark-rollup = { path = "../../crates/qpl-stark-rollup" }
+qpl-network = { path = "../../crates/qpl-network" }
+qpl-sdk = { path = "../../crates/qpl-sdk" }
+tokio = { version = "1", features = ["full"] }
+chrono = "0.4"

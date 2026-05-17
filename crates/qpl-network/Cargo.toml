@@ -1,0 +1,26 @@
+[package]
+name = "qpl-network"
+description = "QPL decentralized operator network — types, routing, fees, and coordination"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+sql-types = { path = "../common/types" }
+qpl-crypto = { path = "../qpl-crypto" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+sha2 = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+rand = "0.8"
+rust_decimal = { version = "1", features = ["serde-with-str"] }
+hex = "0.4"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }

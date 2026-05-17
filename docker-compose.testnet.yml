@@ -1,0 +1,115 @@
+# QPL Testnet — 5-node operator network + Anvil local chain
+#
+# Usage:
+#   docker compose -f docker-compose.testnet.yml up --build
+#
+# This spins up:
+#   - 5 QPL operator nodes (ports 9000-9040)
+#   - 1 Anvil (Ethereum local chain) on port 8545
+#   - Contract deployment on startup
+
+services:
+  # ─── Local Ethereum (Anvil) ──────────────────────────────────────────
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: ["anvil", "--host", "0.0.0.0", "--block-time", "2"]
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  # ─── QPL Operator Nodes ──────────────────────────────────────────────
+  qpl-node-1:
+    build:
+      context: .
+      dockerfile: services/qpl-node/Dockerfile
+    ports:
+      - "9000:9000"
+    environment:
+      - QPL_NODE_NAME=qpl-operator-1
+      - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - RUST_LOG=info
+    command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-1"]
+    depends_on:
+      anvil:
+        condition: service_healthy
+    volumes:
+      - node1-data:/qpl/data
+
+  qpl-node-2:
+    build:
+      context: .
+      dockerfile: services/qpl-node/Dockerfile
+    ports:
+      - "9010:9000"
+    environment:
+      - QPL_NODE_NAME=qpl-operator-2
+      - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - RUST_LOG=info
+    command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-2"]
+    depends_on:
+      anvil:
+        condition: service_healthy
+    volumes:
+      - node2-data:/qpl/data
+
+  qpl-node-3:
+    build:
+      context: .
+      dockerfile: services/qpl-node/Dockerfile
+    ports:
+      - "9020:9000"
+    environment:
+      - QPL_NODE_NAME=qpl-operator-3
+      - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - RUST_LOG=info
+    command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-3"]
+    depends_on:
+      anvil:
+        condition: service_healthy
+    volumes:
+      - node3-data:/qpl/data
+
+  qpl-node-4:
+    build:
+      context: .
+      dockerfile: services/qpl-node/Dockerfile
+    ports:
+      - "9030:9000"
+    environment:
+      - QPL_NODE_NAME=qpl-operator-4
+      - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - RUST_LOG=info
+    command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-4"]
+    depends_on:
+      anvil:
+        condition: service_healthy
+    volumes:
+      - node4-data:/qpl/data
+
+  qpl-node-5:
+    build:
+      context: .
+      dockerfile: services/qpl-node/Dockerfile
+    ports:
+      - "9040:9000"
+    environment:
+      - QPL_NODE_NAME=qpl-operator-5
+      - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - RUST_LOG=info
+    command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-5"]
+    depends_on:
+      anvil:
+        condition: service_healthy
+    volumes:
+      - node5-data:/qpl/data
+
+volumes:
+  node1-data:
+  node2-data:
+  node3-data:
+  node4-data:
+  node5-data:

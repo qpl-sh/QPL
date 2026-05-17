@@ -1,0 +1,16 @@
+[package]
+name = "sql-types"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Common types for Ligare (QPL)."
+repository = "https://github.com/jnodes/sovereign-quantum-ledger"
+authors = ["Ligare Contributors"]
+homepage = "https://github.com/jnodes/sovereign-quantum-ledger"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+rust_decimal = { version = "1.33", features = ["serde-with-str"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+hex = "0.4"

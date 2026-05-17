@@ -1,0 +1,39 @@
+[package]
+name = "qpl-crypto"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Unified post-quantum cryptography library for Ligare (QPL). Implements ML-DSA-65 (FIPS 204) signing and ML-KEM-1024 (FIPS 203) key encapsulation with HSM abstraction."
+repository = "https://github.com/jnodes/sovereign-quantum-ledger"
+authors = ["Ligare Contributors"]
+homepage = "https://github.com/jnodes/sovereign-quantum-ledger"
+
+[features]
+default = []
+cloudhsm = ["cryptoki"]
+
+[dependencies]
+pqcrypto-dilithium = "0.5"
+pqcrypto-kyber = "0.8"
+pqcrypto-traits = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+zeroize = { version = "1.7", features = ["derive"] }
+thiserror = "1.0"
+async-trait = "0.1"
+hex = "0.4"
+cryptoki = { version = "0.7", optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+rand = "0.8"
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+
+[[bench]]
+name = "ml_dsa_bench"
+harness = false
+
+[[bench]]
+name = "ml_kem_bench"
+harness = false

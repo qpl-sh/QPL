@@ -1,0 +1,27 @@
+[package]
+name = "qpl-sdk"
+description = "QPL protocol SDK — async client library for integrating with the QPL operator network"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+qpl-network = { path = "../qpl-network" }
+
+tokio = { version = "1", features = ["full"] }
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+tower = { version = "0.4", features = ["timeout", "retry"] }
+tracing = "0.1"
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+chrono = "0.4"
+
+[build-dependencies]
+tonic-build = "0.12"
