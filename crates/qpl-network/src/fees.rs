@@ -31,20 +31,10 @@ pub struct FeeSchedule {
     pub proving_large_base: u64,
     /// Fee per proof verification ($0.001)
     pub verification_base: u64,
-    /// Fee per workflow creation ($0.005)
-    pub workflow_creation_base: u64,
-    /// Fee per workflow step execution ($0.003)
-    pub workflow_step_base: u64,
-    /// Fee per yield accrual ($0.002)
-    pub yield_accrual_base: u64,
-    /// Fee per yield token mint ($0.005)
-    pub yield_mint_base: u64,
-    /// Fee per RWA asset registration ($0.01)
-    pub rwa_registration_base: u64,
-    /// Fee per RWA NAV update ($0.003)
-    pub rwa_nav_update_base: u64,
     /// Batch size threshold for proving (transactions).
     pub proving_large_threshold: u32,
+    /// Minimum total fee to prevent dust (micro-units).
+    pub min_total_fee: u64,
 }
 
 impl Default for FeeSchedule {
@@ -54,13 +44,8 @@ impl Default for FeeSchedule {
             proving_small_base: 50_000,    // $0.05
             proving_large_base: 100_000,   // $0.10
             verification_base: 1_000,      // $0.001
-            workflow_creation_base: 5_000,  // $0.005
-            workflow_step_base: 3_000,      // $0.003
-            yield_accrual_base: 2_000,     // $0.002
-            yield_mint_base: 5_000,        // $0.005
-            rwa_registration_base: 10_000, // $0.01
-            rwa_nav_update_base: 3_000,    // $0.003
             proving_large_threshold: 100,
+            min_total_fee: 1_000,          // $0.001 minimum
         }
     }
 }
@@ -72,12 +57,6 @@ pub enum FeeOperation {
     ProveSmallBatch,
     ProveLargeBatch,
     VerifyProof,
-    CreateWorkflow,
-    ExecuteWorkflowStep,
-    AccrueYield,
-    MintYieldToken,
-    RegisterAsset,
-    UpdateNav,
 }
 
 /// A fee estimate returned to the protocol before payment.
@@ -195,12 +174,6 @@ impl FeeCalculator {
             FeeOperation::ProveSmallBatch => self.schedule.proving_small_base,
             FeeOperation::ProveLargeBatch => self.schedule.proving_large_base,
             FeeOperation::VerifyProof => self.schedule.verification_base,
-            FeeOperation::CreateWorkflow => self.schedule.workflow_creation_base,
-            FeeOperation::ExecuteWorkflowStep => self.schedule.workflow_step_base,
-            FeeOperation::AccrueYield => self.schedule.yield_accrual_base,
-            FeeOperation::MintYieldToken => self.schedule.yield_mint_base,
-            FeeOperation::RegisterAsset => self.schedule.rwa_registration_base,
-            FeeOperation::UpdateNav => self.schedule.rwa_nav_update_base,
         }
     }
 

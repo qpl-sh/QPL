@@ -15,10 +15,10 @@ pub struct SdkConfig {
     pub max_retries: u32,
     /// Maximum fee willing to pay per operation (USD micro-units).
     pub max_fee_micro_usd: u64,
-    /// Chain ID for fee payments.
-    pub fee_chain_id: u64,
-    /// RPC endpoint for fee payment chain.
-    pub fee_chain_rpc: String,
+    /// Solana cluster RPC endpoint.
+    pub solana_rpc: String,
+    /// QPL Fee Router program ID (base58 pubkey).
+    pub fee_router_program_id: String,
 }
 
 impl SdkConfig {
@@ -33,20 +33,20 @@ impl SdkConfig {
             request_timeout: Duration::from_secs(30),
             max_retries: 3,
             max_fee_micro_usd: 1_000_000, // $1 max per operation
-            fee_chain_id: 31337,           // Anvil default
-            fee_chain_rpc: "http://localhost:8545".to_string(),
+            solana_rpc: "http://localhost:8899".to_string(),
+            fee_router_program_id: "11111111111111111111111111111111".to_string(),
         }
     }
 
     /// Configuration for mainnet.
-    pub fn mainnet(bootstrap_nodes: Vec<String>, fee_chain_rpc: String) -> Self {
+    pub fn mainnet(bootstrap_nodes: Vec<String>, solana_rpc: String) -> Self {
         Self {
             bootstrap_nodes,
             request_timeout: Duration::from_secs(60),
             max_retries: 5,
             max_fee_micro_usd: 500_000, // $0.50 max per operation
-            fee_chain_id: 1,            // Ethereum mainnet
-            fee_chain_rpc,
+            solana_rpc,
+            fee_router_program_id: "11111111111111111111111111111111".to_string(),
         }
     }
 }

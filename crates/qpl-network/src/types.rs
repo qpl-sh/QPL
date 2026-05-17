@@ -152,16 +152,14 @@ pub enum OperatorStatus {
 /// On-chain staking information for an operator.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StakeInfo {
-    /// Amount staked (in smallest unit, e.g., wei or USDC base units).
+    /// Amount staked (in lamports).
     pub amount: u128,
-    /// Chain ID where the stake contract lives.
-    pub chain_id: u64,
-    /// Address of the QPLStaking contract.
-    pub contract_address: [u8; 20],
+    /// Solana program ID of the QPL Staking program (32 bytes).
+    pub program_id: [u8; 32],
     /// Timestamp when stake was deposited.
     pub staked_at: DateTime<Utc>,
-    /// Transaction hash of the stake transaction (proof).
-    pub stake_tx_hash: [u8; 32],
+    /// Transaction signature of the stake transaction (proof, 64 bytes).
+    pub stake_tx_signature: Vec<u8>,
 }
 
 /// Urgency level for a service request — affects fee multiplier.
@@ -247,14 +245,12 @@ impl QuorumRequirement {
 /// Proof that a fee has been paid on-chain.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeePaymentProof {
-    /// Chain where fee was paid.
-    pub chain_id: u64,
-    /// Transaction hash of the payment.
-    pub tx_hash: [u8; 32],
+    /// Solana transaction signature (64 bytes).
+    pub tx_signature: Vec<u8>,
     /// The fee quote ID this payment references.
     pub fee_quote_id: Uuid,
-    /// Block number where payment was confirmed.
-    pub block_number: u64,
+    /// Slot number where payment was confirmed.
+    pub slot: u64,
 }
 
 #[cfg(test)]

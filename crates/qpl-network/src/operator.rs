@@ -188,11 +188,10 @@ mod tests {
 
     fn test_stake() -> StakeInfo {
         StakeInfo {
-            amount: 10_000_000_000, // 10,000 USDC
-            chain_id: 1,
-            contract_address: [0u8; 20],
+            amount: 10_000_000_000, // ~10 SOL in lamports
+            program_id: [0u8; 32],
             staked_at: Utc::now(),
-            stake_tx_hash: [0u8; 32],
+            stake_tx_signature: vec![0u8; 64],
         }
     }
 

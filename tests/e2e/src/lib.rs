@@ -61,12 +61,12 @@ fn test_coordination_round_lifecycle() {
 fn test_sdk_config_presets() {
     let testnet = qpl_sdk::SdkConfig::testnet();
     assert_eq!(testnet.bootstrap_nodes.len(), 3);
-    assert_eq!(testnet.fee_chain_id, 31337);
+    assert_eq!(testnet.solana_rpc, "http://localhost:8899");
 
     let mainnet = qpl_sdk::SdkConfig::mainnet(
         vec!["https://qpl-1.example.com".to_string()],
-        "https://eth.example.com".to_string(),
+        "https://api.mainnet-beta.solana.com".to_string(),
     );
-    assert_eq!(mainnet.fee_chain_id, 1);
+    assert_eq!(mainnet.solana_rpc, "https://api.mainnet-beta.solana.com");
     assert_eq!(mainnet.max_retries, 5);
 }

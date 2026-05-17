@@ -1,0 +1,18 @@
+[workspace]
+members = [
+    "programs/qpl-staking",
+    "programs/qpl-fee-router",
+    "programs/qpl-registry",
+]
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[programs.localnet]
+qpl_staking = "QPLStk1111111111111111111111111111111111111"
+qpl_fee_router = "QPLFee1111111111111111111111111111111111111"
+qpl_registry = "QPLReg1111111111111111111111111111111111111"

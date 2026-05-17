@@ -39,12 +39,10 @@ coverage/
 # SoftHSM2 test token storage
 softhsm-tokens/
 
-# Solidity / Foundry
-contracts/out/
-contracts/cache/
-broadcast/
-artifacts/
-typechain-types/
+# Solana / Anchor
+.anchor/
+test-ledger/
+programs/**/target/
 
 # Qoder
 .qoder/

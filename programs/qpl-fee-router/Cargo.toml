@@ -1,0 +1,20 @@
+[package]
+name = "qpl-fee-router"
+version = "0.1.0"
+edition = "2021"
+description = "QPL fee collection and distribution — per-operation micro-fees with 40/50/10 split on Solana"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "qpl_fee_router"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.30"
+anchor-spl = "0.30"

@@ -31,7 +31,7 @@ Quantum computers will break ECDSA and RSA within the decade. QPL replaces legac
 └────────────────────────┬────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────┐
-│              Ethereum (Settlement)                    │
+│              Solana (Settlement)                      │
 │  QPLStaking · QPLFeeRouter · QPLRegistry            │
 └─────────────────────────────────────────────────────┘
 ```
@@ -45,7 +45,7 @@ Quantum computers will break ECDSA and RSA within the decade. QPL replaces legac
 | `crates/qpl-network` | Operator lifecycle, coordination, fee calculation, quorum logic |
 | `crates/qpl-sdk` | Client SDK for integrating QPL signing and proving |
 | `services/qpl-node` | Operator node binary — serves signing and proving over JSON-RPC |
-| `contracts/` | Solidity contracts — staking, fee routing, operator registry |
+| `programs/` | Solana programs (Anchor) — staking, fee routing, operator registry |
 
 ## Fee Model
 
@@ -57,40 +57,40 @@ Every signing or proving operation incurs a micro-fee (~$0.001), split automatic
 | Participating operators | 50% |
 | Protocol treasury | 10% |
 
-Operators stake ETH to join the network. Misbehavior triggers slashing; honest participation earns fees proportional to work performed.
+Operators stake SOL to join the network. Misbehavior triggers slashing; honest participation earns fees proportional to work performed.
 
 ## Getting Started
 
 ### Prerequisites
 
 - **Rust** stable toolchain (1.75+)
-- **Foundry** (forge, anvil, cast) for Solidity contracts
+- **Solana CLI** (1.18+) and **Anchor** (0.30+) for on-chain programs
 - **Docker** (optional) for multi-node testnet
 
 ### Build
 
 ```bash
-# Build everything (Rust workspace + Solidity contracts)
+# Build everything (Rust workspace + Solana programs)
 make build
 
 # Build only the operator node (release mode)
 make build-node
 
-# Build only contracts
-make build-contracts
+# Build only Solana programs
+make build-programs
 ```
 
 ### Test
 
 ```bash
-# Run all tests (200 Rust + 10 Solidity)
+# Run all tests (200+ Rust + Solana program tests)
 make test
 
 # Individual test suites
 cargo test -p qpl-crypto
 cargo test -p qpl-stark-rollup
 cargo test -p qpl-network
-cd contracts && forge test -v
+anchor test
 ```
 
 ### Run a Local Node
@@ -106,7 +106,7 @@ cargo run -p qpl-node -- --listen 0.0.0.0:9000 --name my-node
 ### Deploy a 5-Node Testnet
 
 ```bash
-# Spin up 5 operator nodes + Anvil (local Ethereum)
+# Spin up 5 operator nodes (Docker)
 make testnet-up
 
 # View logs
@@ -116,10 +116,11 @@ make testnet-logs
 make testnet-down
 ```
 
-### Deploy Contracts (Local)
+### Deploy Programs (Local)
 
 ```bash
-# Requires Anvil running on localhost:8545
+# Requires solana-test-validator running
+make localnet-up
 make deploy-local
 ```
 
@@ -151,7 +152,7 @@ Stake ──► Join ──► Active ──► Drain ──► Exit
                      └── Slash ───────────┘
 ```
 
-1. **Stake** — Deposit minimum 1 ETH to `QPLStaking` contract
+1. **Stake** — Deposit minimum 1 SOL to `QPLStaking` program
 2. **Join** — Register endpoint and supported services in `QPLRegistry`
 3. **Active** — Serve signing/proving requests, earn fees
 4. **Drain** — Signal intent to leave, stop accepting new requests
@@ -167,14 +168,15 @@ qpl/
 │   ├── qpl-network/         # Operator coordination and fees
 │   ├── qpl-sdk/             # Client SDK
 │   └── common/              # Shared types and utilities
+├── programs/
+│   ├── qpl-staking/         # Solana: Operator staking and slashing
+│   ├── qpl-fee-router/      # Solana: Fee collection and distribution
+│   └── qpl-registry/        # Solana: Operator discovery
 ├── services/
 │   └── qpl-node/            # Operator node binary
-├── contracts/
-│   ├── src/                  # Solidity: Staking, FeeRouter, Registry
-│   ├── test/                 # Foundry tests
-│   └── script/               # Deployment scripts
 ├── proto/                    # gRPC protocol definitions
 ├── tests/e2e/               # End-to-end integration tests
+├── Anchor.toml              # Solana program workspace config
 ├── docker-compose.testnet.yml
 └── Makefile
 ```

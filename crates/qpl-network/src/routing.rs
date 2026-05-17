@@ -143,10 +143,9 @@ mod tests {
             status: OperatorStatus::Active,
             stake: StakeInfo {
                 amount: 10_000_000_000,
-                chain_id: 1,
-                contract_address: [0u8; 20],
+                program_id: [0u8; 32],
                 staked_at: Utc::now(),
-                stake_tx_hash: [0u8; 32],
+                stake_tx_signature: vec![0u8; 64],
             },
             registered_at: Utc::now(),
             last_heartbeat: Utc::now(),

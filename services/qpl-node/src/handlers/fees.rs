@@ -43,9 +43,8 @@ fn parse_operation(s: &str) -> Result<FeeOperation, Box<dyn std::error::Error + 
     match s.to_lowercase().as_str() {
         "signing" | "sign" => Ok(FeeOperation::Sign),
         "proving" | "prove" => Ok(FeeOperation::ProveSmallBatch),
-        "settlement" | "settle" | "workflow" => Ok(FeeOperation::CreateWorkflow),
-        "yield" => Ok(FeeOperation::AccrueYield),
-        "rwa" => Ok(FeeOperation::RegisterAsset),
+        "proving_large" | "prove_large" => Ok(FeeOperation::ProveLargeBatch),
+        "verification" | "verify" => Ok(FeeOperation::VerifyProof),
         _ => Err(format!("unknown service type: {}", s).into()),
     }
 }

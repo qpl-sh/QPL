@@ -85,28 +85,6 @@ pub enum ServiceRequestPayload {
         proof_config: ProofRequestConfig,
         fee_proof: FeePaymentProof,
     },
-    /// Create a programmable settlement workflow.
-    CreateWorkflow {
-        workflow_type: WorkflowRequestType,
-        parameters: Vec<u8>,
-        fee_proof: FeePaymentProof,
-    },
-    /// Execute a step in an existing workflow.
-    ExecuteStep {
-        workflow_id: String,
-        step_index: u32,
-        fee_proof: FeePaymentProof,
-    },
-    /// Accrue yield on a token.
-    AccrueYield {
-        token_id: String,
-        fee_proof: FeePaymentProof,
-    },
-    /// Register a real-world asset.
-    RegisterAsset {
-        asset_info: Vec<u8>,
-        fee_proof: FeePaymentProof,
-    },
 }
 
 /// Service response payload — tagged union of all response types.
@@ -123,25 +101,6 @@ pub enum ServiceResponsePayload {
         proof: Vec<u8>,
         /// Public inputs for verification.
         public_inputs: Vec<u8>,
-    },
-    /// Workflow creation result.
-    WorkflowCreated {
-        workflow_id: String,
-    },
-    /// Workflow step execution result.
-    StepExecuted {
-        workflow_id: String,
-        step_index: u32,
-        success: bool,
-    },
-    /// Yield accrual result.
-    YieldAccrued {
-        token_id: String,
-        accrued_amount: String,
-    },
-    /// Asset registration result.
-    AssetRegistered {
-        asset_id: String,
     },
     /// Error response.
     Error {
@@ -171,15 +130,6 @@ impl Default for ProofRequestConfig {
     }
 }
 
-/// Type of workflow to create.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WorkflowRequestType {
-    Escrow,
-    DeliveryVsPayment,
-    PaymentVsPayment,
-    ConditionalRelease,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -196,10 +146,9 @@ mod tests {
             message: b"hello quantum world".to_vec(),
             quorum: QuorumRequirement::three_of_five(),
             fee_proof: FeePaymentProof {
-                chain_id: 1,
-                tx_hash: [0xAB; 32],
+                tx_signature: vec![0xAB; 64],
                 fee_quote_id: uuid::Uuid::new_v4(),
-                block_number: 12345,
+                slot: 12345,
             },
         };
 

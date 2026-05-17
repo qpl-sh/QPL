@@ -1,0 +1,20 @@
+[package]
+name = "qpl-staking"
+version = "0.1.0"
+edition = "2021"
+description = "QPL operator staking program — collateral management, unbonding, and slashing on Solana"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "qpl_staking"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.30"
+anchor-spl = "0.30"

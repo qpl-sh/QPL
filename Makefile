@@ -3,12 +3,12 @@
 # Build all components
 build:
 	cargo build --workspace
-	cd contracts && forge build
+	anchor build
 
 # Run all tests
 test:
 	cargo test --workspace
-	cd contracts && forge test
+	anchor test
 
 # Run all benchmarks
 bench:
@@ -25,7 +25,7 @@ lint:
 # Clean build artifacts
 clean:
 	cargo clean
-	cd contracts && forge clean
+	anchor clean 2>/dev/null || true
 
 # ─── QPL Network Targets ───────────────────────────────────────────────
 
@@ -41,16 +41,33 @@ build-node:
 test-network:
 	cargo test -p qpl-network
 
-# Build & test Solidity contracts
-build-contracts:
-	cd contracts && forge build
+# ─── Solana Program Targets ────────────────────────────────────────────
 
-test-contracts:
-	cd contracts && forge test -v
+# Build Solana programs (requires Anchor CLI + Solana CLI)
+build-programs:
+	anchor build
 
-# Deploy contracts to local Anvil
+# Test Solana programs on localnet
+test-programs:
+	anchor test
+
+# Deploy programs to Solana devnet
+deploy-devnet:
+	anchor deploy --provider.cluster devnet
+
+# Deploy programs to local validator
 deploy-local:
-	cd contracts && forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --broadcast
+	anchor deploy --provider.cluster localnet
+
+# Start local Solana validator
+localnet-up:
+	solana-test-validator --reset &
+
+# Stop local validator
+localnet-down:
+	pkill -f solana-test-validator || true
+
+# ─── Docker Targets ────────────────────────────────────────────────────
 
 # Start the 5-node testnet (Docker)
 testnet-up:

@@ -1,0 +1,19 @@
+[package]
+name = "qpl-registry"
+version = "0.1.0"
+edition = "2021"
+description = "QPL operator registry — on-chain discovery by service bitmask on Solana"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "qpl_registry"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.30"

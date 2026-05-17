@@ -42,11 +42,9 @@ pub struct BootstrapConfig {
 /// On-chain registry reference for operator discovery.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegistryContract {
-    /// Chain ID where the registry lives.
-    pub chain_id: u64,
-    /// Contract address.
-    pub address: [u8; 20],
-    /// RPC endpoint for reading state.
+    /// QPL Registry program ID (32-byte Solana pubkey).
+    pub program_id: [u8; 32],
+    /// Solana RPC endpoint for reading state.
     pub rpc_url: String,
 }
 

@@ -1,22 +1,23 @@
-# QPL Testnet — 5-node operator network + Anvil local chain
+# QPL Testnet — 5-node operator network + Solana test validator
 #
 # Usage:
 #   docker compose -f docker-compose.testnet.yml up --build
 #
 # This spins up:
 #   - 5 QPL operator nodes (ports 9000-9040)
-#   - 1 Anvil (Ethereum local chain) on port 8545
-#   - Contract deployment on startup
+#   - 1 Solana test validator on port 8899 (RPC) / 8900 (WS)
+#   - Program deployment on startup
 
 services:
-  # ─── Local Ethereum (Anvil) ──────────────────────────────────────────
-  anvil:
-    image: ghcr.io/foundry-rs/foundry:latest
-    command: ["anvil", "--host", "0.0.0.0", "--block-time", "2"]
+  # ─── Local Solana Validator ─────────────────────────────────────────
+  solana-validator:
+    image: solanalabs/solana:v1.18
+    command: ["solana-test-validator", "--bind-address", "0.0.0.0", "--rpc-port", "8899"]
     ports:
-      - "8545:8545"
+      - "8899:8899"
+      - "8900:8900"
     healthcheck:
-      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
+      test: ["CMD", "solana", "cluster-version", "--url", "http://localhost:8899"]
       interval: 2s
       timeout: 5s
       retries: 10
@@ -31,10 +32,11 @@ services:
     environment:
       - QPL_NODE_NAME=qpl-operator-1
       - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - QPL_SOLANA_RPC=http://solana-validator:8899
       - RUST_LOG=info
     command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-1"]
     depends_on:
-      anvil:
+      solana-validator:
         condition: service_healthy
     volumes:
       - node1-data:/qpl/data
@@ -48,10 +50,11 @@ services:
     environment:
       - QPL_NODE_NAME=qpl-operator-2
       - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - QPL_SOLANA_RPC=http://solana-validator:8899
       - RUST_LOG=info
     command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-2"]
     depends_on:
-      anvil:
+      solana-validator:
         condition: service_healthy
     volumes:
       - node2-data:/qpl/data
@@ -65,10 +68,11 @@ services:
     environment:
       - QPL_NODE_NAME=qpl-operator-3
       - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - QPL_SOLANA_RPC=http://solana-validator:8899
       - RUST_LOG=info
     command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-3"]
     depends_on:
-      anvil:
+      solana-validator:
         condition: service_healthy
     volumes:
       - node3-data:/qpl/data
@@ -82,10 +86,11 @@ services:
     environment:
       - QPL_NODE_NAME=qpl-operator-4
       - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - QPL_SOLANA_RPC=http://solana-validator:8899
       - RUST_LOG=info
     command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-4"]
     depends_on:
-      anvil:
+      solana-validator:
         condition: service_healthy
     volumes:
       - node4-data:/qpl/data
@@ -99,10 +104,11 @@ services:
     environment:
       - QPL_NODE_NAME=qpl-operator-5
       - QPL_LISTEN_ADDR=0.0.0.0:9000
+      - QPL_SOLANA_RPC=http://solana-validator:8899
       - RUST_LOG=info
     command: ["--listen", "0.0.0.0:9000", "--name", "qpl-operator-5"]
     depends_on:
-      anvil:
+      solana-validator:
         condition: service_healthy
     volumes:
       - node5-data:/qpl/data

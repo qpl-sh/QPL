@@ -14,7 +14,7 @@
 
 ## Abstract
 
-QPL Network is a decentralized infrastructure protocol providing quantum-resistant threshold signatures and zero-knowledge proofs as permissionless services. The protocol employs NIST-standardized post-quantum cryptographic algorithms (ML-DSA-65 for digital signatures, ML-KEM-1024 for key encapsulation) and FRI-based zk-STARKs (no trusted setup) to deliver cryptographic operations that resist both classical and quantum adversaries. A network of independent operators stakes collateral, registers capabilities, and processes cryptographic service requests in exchange for per-operation fees proportional to computational work performed. This document specifies the protocol's cryptographic foundations, operator network mechanics, coordination protocol, fee economics, and smart contract architecture.
+QPL Network is a decentralized infrastructure protocol providing quantum-resistant threshold signatures and zero-knowledge proofs as permissionless services. The protocol employs NIST-standardized post-quantum cryptographic algorithms (ML-DSA-65 for digital signatures, ML-KEM-1024 for key encapsulation) and FRI-based zk-STARKs (no trusted setup) to deliver cryptographic operations that resist both classical and quantum adversaries. A network of independent operators stakes collateral, registers capabilities, and processes cryptographic service requests in exchange for per-operation fees proportional to computational work performed. This document specifies the protocol's cryptographic foundations, operator network mechanics, coordination protocol, fee economics, and on-chain program architecture.
 
 ---
 
@@ -28,7 +28,7 @@ QPL Network is a decentralized infrastructure protocol providing quantum-resista
 6. [Threshold Signing Protocol](#6-threshold-signing-protocol)
 7. [STARK Proving Protocol](#7-stark-proving-protocol)
 8. [Fee Economics](#8-fee-economics)
-9. [Smart Contract Architecture](#9-smart-contract-architecture)
+9. [On-Chain Program Architecture](#9-on-chain-program-architecture)
 10. [Security Model](#10-security-model)
 11. [Comparison with Existing Systems](#11-comparison-with-existing-systems)
 12. [Implementation Status](#12-implementation-status)
@@ -57,11 +57,11 @@ This paper specifies:
 - A zero-knowledge proving service using FRI-based zk-STARKs with no trusted setup and quantum-resistant hash assumptions.
 - A decentralized operator network with on-chain staking, liveness monitoring, and slashing — ensuring service availability and honest behavior.
 - A fee economics model where operators receive compensation proportional to computational work performed, with transparent on-chain distribution.
-- Smart contracts (Ethereum) managing operator registration, fee collection, and capability discovery.
+- Solana programs managing operator registration, fee collection, and capability discovery.
 
 ### 1.3 Document Structure
 
-Sections 2-3 establish the threat model and cryptographic foundations. Sections 4-7 specify the network architecture and service protocols. Section 8 details fee economics. Section 9 describes the smart contract layer. Section 10 analyzes security properties. Sections 11-13 provide competitive context, implementation status, and future directions.
+Sections 2-3 establish the threat model and cryptographic foundations. Sections 4-7 specify the network architecture and service protocols. Section 8 details fee economics. Section 9 describes the on-chain program layer. Section 10 analyzes security properties. Sections 11-13 provide competitive context, implementation status, and future directions.
 
 ---
 
@@ -230,7 +230,7 @@ QPL operates as a three-layer system:
 └───────────────────────────┬─────────────────────────────┘
                             │ Staking, Fees, Registration
 ┌───────────────────────────▼─────────────────────────────┐
-│                  SETTLEMENT LAYER (Ethereum)              │
+│                  SETTLEMENT LAYER (Solana)                │
 │  QPLStaking  ·  QPLFeeRouter  ·  QPLRegistry            │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -275,7 +275,7 @@ let signature = client.signing().sign(message).await?;
 let proof = client.proving().prove(statement).await?;
 ```
 
-Endpoint discovery is automated via the QPLRegistry contract — the SDK queries active operators, filters by required service type, and connects to the lowest-load node.
+Endpoint discovery is automated via the QPLRegistry program — the SDK queries active operators, filters by required service type, and connects to the lowest-load node.
 
 ### 4.5 Communication Protocol
 
@@ -322,7 +322,7 @@ Operators transition through a state machine:
 
 An operator joins the network through:
 
-1. **Stake deposit** — Call `QPLStaking.stake(operatorId, endpoint, servicesBitmask)` with at least 1 ETH. The `operatorId` is derived from the operator's ML-DSA public key. The `servicesBitmask` declares supported services (bit 1 = Signing, bit 2 = Proving).
+1. **Stake deposit** — Call `QPLStaking.stake(operatorId, endpoint, servicesBitmask)` with at least 1 SOL. The `operatorId` is derived from the operator's ML-DSA public key. The `servicesBitmask` declares supported services (bit 1 = Signing, bit 2 = Proving).
 
 2. **Endpoint registration** — The staking transaction includes the operator's network endpoint (IP:port or DNS), stored in the QPLRegistry for client discovery.
 
@@ -473,7 +473,7 @@ The QPL prover (Winterfell-based) operates in stages:
 Proof verification is computationally lightweight relative to proving:
 
 - **Off-chain verification:** The QPL SDK includes a native verifier for applications that verify proofs locally
-- **On-chain verification:** A Solidity verifier contract can validate STARK proofs on Ethereum (gas cost: approximately 200K-500K gas depending on proof complexity)
+- **On-chain verification:** A Solana program can validate STARK proofs on-chain (compute units: approximately 200K-400K CU depending on proof complexity)
 - **Verification process:** Reconstruct Merkle roots from authentication paths, evaluate FRI queries, check constraint satisfaction at random points
 
 ### 7.4 Use Cases
@@ -596,77 +596,77 @@ These figures scale linearly with request volume. Operator costs include compute
 
 ---
 
-## 9. Smart Contract Architecture
+## 9. On-Chain Program Architecture
 
-### 9.1 Contract Overview
+### 9.1 Program Overview
 
-Three Solidity contracts on Ethereum manage the on-chain components of QPL:
+Three Solana programs (Anchor framework) manage the on-chain components of QPL:
 
 ```
 ┌──────────────┐     ┌───────────────┐     ┌──────────────┐
 │  QPLStaking  │     │ QPLFeeRouter  │     │ QPLRegistry  │
 │              │     │               │     │              │
-│ - stake()    │     │ - payFee()    │     │ - register() │
-│ - unstake()  │     │ - distribute()│     │ - lookup()   │
-│ - withdraw() │     │ - claim()     │     │ - filter()   │
+│ - stake()    │     │ - deposit()   │     │ - register() │
+│ - unstake()  │     │ - charge_fee()│     │ - update()   │
+│ - withdraw() │     │ - claim()     │     │ - deactivate()│
 │ - slash()    │     │               │     │              │
 └──────────────┘     └───────────────┘     └──────────────┘
 ```
 
-All contracts are governed by a multisig address with authority over parameter changes, slashing, and fee distribution.
+All programs are governed by an upgrade authority (multisig) with control over parameter changes, slashing, and fee configuration. Program Derived Addresses (PDAs) hold all state — no external token accounts required for core operations.
 
 ### 9.2 QPLStaking
 
 Manages operator collateral and lifecycle:
 
-- **Minimum collateral:** 1 ETH (`MIN_STAKE = 1 ether`)
-- **Registration:** `stake(operatorId, endpoint, servicesBitmask)` — deposits collateral and registers the operator as active
-- **Unstaking:** `initiateUnstake(operatorId)` — marks operator inactive, begins 7-day unbonding period (`UNBOND_PERIOD = 7 days`)
-- **Withdrawal:** `withdraw(operatorId)` — releases collateral after unbonding period elapses
-- **Slashing:** `slash(operatorId, amount, reason)` — governance deducts collateral for protocol violations. If remaining stake falls below `MIN_STAKE`, operator is automatically deactivated
-- **Operator discovery:** `getActiveOperators()` — returns all currently active operator IDs
+- **Minimum collateral:** 1 SOL (`MIN_STAKE = 1_000_000_000 lamports`)
+- **Registration:** `stake(operator_id, endpoint, services_bitmask)` — deposits SOL to a PDA-controlled vault and registers the operator as active
+- **Unstaking:** `initiate_unstake(operator_id)` — marks operator as draining, begins 7-day unbonding period (`UNBOND_PERIOD = 604_800 seconds`)
+- **Withdrawal:** `withdraw(operator_id)` — releases collateral after unbonding period elapses via PDA transfer
+- **Slashing:** `slash(operator_id, amount)` — governance deducts collateral for protocol violations. If remaining stake falls below `MIN_STAKE`, operator is automatically deactivated
+- **Account structure:** Each operator has a PDA-derived `OperatorAccount` storing stake amount, status, endpoint, and timestamps
 
-**Collateral rationale:** The 1 ETH minimum collateral serves as a Sybil resistance mechanism and ensures operators have economic skin-in-the-game. It is not an investment — it is a security deposit that operators may forfeit if they violate protocol rules.
+**Collateral rationale:** The 1 SOL minimum collateral serves as a Sybil resistance mechanism and ensures operators have economic skin-in-the-game. It is not an investment — it is a security deposit that operators may forfeit if they violate protocol rules.
+
+**Why Solana:** At ~$0.00025 per transaction, Solana's fee structure supports QPL's micro-fee model ($0.001 per signature). Ethereum L1 gas costs ($0.50-$5.00 per transaction) exceed the QPL signing fee by 500-5000x, making per-operation settlement economically impossible on Ethereum.
 
 ### 9.3 QPLFeeRouter
 
-Handles fee collection and distribution:
+Handles prepaid fee balances and distribution:
 
-- **Collection:** `payFee(quoteId)` — clients pay the quoted fee amount, locked until distribution
-- **Distribution:** `distributeFee(quoteId, coordinator, participants[], treasury)` — governance allocates the collected fee according to the 40/50/10 split
+- **Deposit:** `deposit_balance(amount)` — protocols pre-fund a balance (PDA-held), enabling batch operations without per-request on-chain transactions
+- **Charge:** `charge_fee(protocol, amount, coordinator, participants[], treasury)` — deducts from protocol balance and allocates according to the 40/50/10 split
 - **Claiming:** `claim()` — operators withdraw their accumulated fee balance
-- **Treasury transfer:** Treasury share is transferred immediately during distribution
+- **Minimum fee:** `MIN_FEE_LAMPORTS = 6,667` (~$0.001 at $150/SOL) prevents dust operations
 
-Fees accumulate in operator-specific balances. Operators withdraw on their own schedule, minimizing gas costs by batching claims.
+The prepaid balance pattern amortizes Solana transaction costs across many QPL operations. A protocol deposits once, then the coordinator settles fee splits periodically (e.g., every 100 operations) rather than per-request.
 
 ### 9.4 QPLRegistry
 
 On-chain operator discovery for SDK auto-connection:
 
-- **Registration:** Endpoint and service bitmask stored during staking
+- **Registration:** Endpoint (max 128 characters) and service bitmask stored per operator
 - **Service bitmask encoding:**
 
 | Service | Bit Position | Bitmask Value |
 |---------|-------------|---------------|
 | Signing | 1 | 0x02 |
 | Proving | 2 | 0x04 |
-| Settlement | 3 | 0x08 |
-| Yield | 4 | 0x10 |
-| RWA | 5 | 0x20 |
 
 - **Filtering:** Clients query by service bitmask to find operators supporting their required capability
 - **Endpoint resolution:** Returns operator network addresses for SDK connection
+- **Deactivation:** Operators or governance can deactivate a registry entry, preventing new client connections
 
 ### 9.5 Upgrade Path
 
-Contract upgrades follow a governance-controlled process:
+Program upgrades follow a governance-controlled process:
 
-1. New implementation deployed
-2. Governance multisig proposes upgrade (timelock: 48 hours)
-3. Community review period
-4. Governance executes upgrade
+1. New program binary deployed to buffer account
+2. Governance multisig proposes upgrade via Anchor upgrade authority
+3. Community review period (48 hours minimum)
+4. Governance executes `bpf_upgradeable_loader` upgrade
 
-Initial deployment uses transparent proxy pattern for upgradeability. Long-term goal: remove proxy and deploy immutable contracts once the protocol stabilizes.
+Long-term goal: revoke upgrade authority and deploy immutable programs once the protocol stabilizes.
 
 ---
 
@@ -695,7 +695,7 @@ For a t-of-n threshold scheme:
 | 3-of-5 | 2 | 2 |
 | 5-of-7 | 2 | 2 |
 
-A rational adversary would need to stake 1 ETH per compromised operator node and risk slashing of all stake upon detection.
+A rational adversary would need to stake 1 SOL per compromised operator node and risk slashing of all stake upon detection.
 
 ### 10.3 Slashing Conditions
 
@@ -727,9 +727,9 @@ QPL's security relies on:
 
 ### 10.6 Network-Level Attacks
 
-**Eclipse attacks:** Mitigated by on-chain registry — clients discover operators via QPLRegistry contract, not peer gossip. An attacker cannot isolate a client from the legitimate operator set.
+**Eclipse attacks:** Mitigated by on-chain registry — clients discover operators via QPLRegistry program, not peer gossip. An attacker cannot isolate a client from the legitimate operator set.
 
-**Sybil resistance:** The 1 ETH minimum collateral per operator makes Sybil attacks economically costly. Controlling a majority of a 5-node quorum requires staking 3+ ETH and operating 3+ distinct infrastructure nodes.
+**Sybil resistance:** The 1 SOL minimum collateral per operator makes Sybil attacks economically costly. Controlling a majority of a 5-node quorum requires staking 3+ SOL and operating 3+ distinct infrastructure nodes.
 
 **Denial of service:** Fee-based rate limiting ensures that each request has an associated cost. Operators may additionally implement per-client rate limits. The decentralized topology ensures no single point of failure.
 
@@ -751,7 +751,7 @@ Fireblocks provides institutional MPC custody with threshold ECDSA signing. Limi
 Lit Protocol offers decentralized threshold signing and encryption. Limitations:
 - Classical cryptography only (ECDSA, BLS) — no quantum resistance
 - No STARK proving capability
-- Different economic model (network token staking vs. ETH collateral)
+- Different economic model (network token staking vs. SOL collateral)
 
 ### 11.3 Threshold Network
 
@@ -791,16 +791,17 @@ The implementation is a Rust workspace with the following crates:
 | `qpl-sdk` | Client library for protocol integration | 9 |
 | `common/types` | Shared type definitions | 3 |
 | `services/qpl-node` | Operator node binary | — |
-| `tests/e2e` | End-to-end integration tests | 5 |
+| `tests/e2e` | End-to-end integration tests | 3 |
 
-Smart contracts (Solidity, Foundry toolchain):
+Solana programs (Anchor framework):
 
-| Contract | Test Count |
-|----------|-----------|
-| QPLStaking | 6 |
-| QPLFeeRouter | 4 |
+| Program | Status |
+|---------|--------|
+| QPLStaking | Implemented |
+| QPLFeeRouter | Implemented |
+| QPLRegistry | Implemented |
 
-**Total: 200+ Rust tests, 10+ Solidity tests — all passing.**
+**Total: 195+ Rust tests — all passing. Solana programs pending integration tests (requires solana-test-validator).**
 
 ### 12.2 Benchmarks
 
@@ -821,7 +822,7 @@ These benchmarks demonstrate that post-quantum cryptographic operations are prac
 
 - **Cryptographic correctness:** Wycheproof-style test vectors for ML-DSA and ML-KEM operations
 - **Network protocol:** Unit tests for operator lifecycle, coordination rounds, fee calculation, quorum formation
-- **Smart contracts:** Foundry tests covering staking, unstaking, slashing, fee payment, and distribution
+- **Solana programs:** Anchor integration tests covering staking, unstaking, slashing, fee deposits, and distribution
 - **End-to-end:** Integration tests verifying the full pipeline from fee estimation through coordination to result delivery
 
 ---
@@ -833,16 +834,16 @@ These benchmarks demonstrate that post-quantum cryptographic operations are prac
 - **SLH-DSA (FIPS 205):** Hash-based signatures as a conservative fallback. Larger signatures (~17 KB) but security relies only on hash function properties — no lattice assumptions.
 - **Hybrid modes:** Simultaneous classical + post-quantum signatures during the transition period, enabling graceful migration for protocols not yet ready to fully drop ECDSA.
 
-### 13.2 Cross-Chain Deployment
+### 13.2 Multi-Chain Service Availability
 
-- Deploy QPLStaking, QPLFeeRouter, and QPLRegistry on L2 networks (Arbitrum, Optimism, Base) to reduce operator gas costs for staking and fee claiming
-- Cross-chain fee payment: accept fees on any supported chain, settle to operators on their preferred chain
-- Multi-chain registry: operators advertise service on multiple chains simultaneously
+- Extend the off-chain operator network to serve protocols on any chain (EVM, Cosmos, Move-based) — the signing/proving service is chain-agnostic
+- Cross-chain fee payment: accept prepaid deposits from protocols on other chains via bridge or wormhole messaging
+- Multi-chain registry: operators advertise service availability across ecosystems while settlement remains on Solana
 
 ### 13.3 Governance Decentralization
 
 - Transition from governance multisig to on-chain operator voting for parameter changes (fee schedule adjustments, slashing conditions, minimum collateral)
-- Proposal + timelock mechanism for contract upgrades
+- Proposal + timelock mechanism for program upgrades
 - Operator reputation system influencing governance weight (based on uptime, request volume, absence of slashing events)
 
 ### 13.4 Hardware Acceleration
@@ -973,15 +974,12 @@ Coordinator: $0.30, Each participant: $0.09375, Treasury: $0.075
 
 ## Appendix C: Service Bitmask Encoding
 
-Operators declare supported services via a `uint32` bitmask in the QPLStaking and QPLRegistry contracts:
+Operators declare supported services via a `u32` bitmask in the QPLStaking and QPLRegistry programs:
 
 | Service Type | Enum Value | Bit Position | Bitmask |
 |-------------|-----------|--------------|---------|
 | Signing | 1 | 1 | `0x00000002` |
 | Proving | 2 | 2 | `0x00000004` |
-| Settlement | 3 | 3 | `0x00000008` |
-| Yield | 4 | 4 | `0x00000010` |
-| RWA | 5 | 5 | `0x00000020` |
 
 **Encoding formula:** `bitmask = OR(1 << service_value)` for each supported service.
 
@@ -990,13 +988,13 @@ Operators declare supported services via a `uint32` bitmask in the QPLStaking an
 | Operator Supports | Bitmask | Hex |
 |------------------|---------|-----|
 | Signing only | `0b00000010` | `0x02` |
+| Proving only | `0b00000100` | `0x04` |
 | Signing + Proving | `0b00000110` | `0x06` |
-| All services | `0b00111110` | `0x3E` |
 
 **Client-side filtering:** To find operators supporting Signing AND Proving:
 ```
 required_mask = 0x06  // bits 1 and 2 set
-match = (operator.servicesBitmask & required_mask) == required_mask
+match = (operator.services_bitmask & required_mask) == required_mask
 ```
 
 ---
