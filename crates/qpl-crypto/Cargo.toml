@@ -23,6 +23,13 @@ thiserror = "1.0"
 async-trait = "0.1"
 hex = "0.4"
 cryptoki = { version = "0.7", optional = true }
+# Classical signing algorithms for HSM-native operation (FIPS 186-4 / RFC 8032).
+# These are HSM-native on all production HSMs as of 2026, allowing the signing
+# key to never leave the HSM boundary. ML-DSA remains the post-quantum target
+# once HSM firmware ships FIPS 204 mechanisms.
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+p256 = { version = "0.13", features = ["ecdsa"] }
+rand_core = "0.6"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

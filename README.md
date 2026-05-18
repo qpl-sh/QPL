@@ -8,6 +8,7 @@ Quantum computers will break ECDSA and RSA within the decade. QPL replaces legac
 
 - **ML-DSA-65** threshold signing (NIST FIPS 204)
 - **ML-KEM-1024** key encapsulation (NIST FIPS 203)
+- **Algorithmic agility** — operators may serve Ed25519 (RFC 8032), ECDSA-P256 (FIPS 186-4), or ML-DSA-65 (FIPS 204), negotiated per request
 - **FRI-based zk-STARKs** with no trusted setup (Winterfell)
 - **Decentralized operator network** with on-chain staking and slashing
 
@@ -40,12 +41,14 @@ Quantum computers will break ECDSA and RSA within the decade. QPL replaces legac
 
 | Crate / Service | Description |
 |---|---|
-| `crates/qpl-crypto` | Post-quantum primitives — ML-DSA-65, ML-KEM-1024, threshold MPC |
+| `crates/qpl-crypto` | Post-quantum + classical primitives — ML-DSA-65, ML-KEM-1024, Ed25519, ECDSA-P256, threshold MPC, agility layer |
 | `crates/qpl-stark-rollup` | STARK prover/verifier — AIR constraints, FRI, execution engine |
 | `crates/qpl-network` | Operator lifecycle, coordination, fee calculation, quorum logic |
 | `crates/qpl-sdk` | Client SDK for integrating QPL signing and proving |
 | `services/qpl-node` | Operator node binary — serves signing and proving over JSON-RPC |
-| `programs/` | Solana programs (Anchor) — staking, fee routing, operator registry |
+| `programs/` | Solana programs (Anchor) — staking (with `initialize_config`/`initialize_vault`/`deposit_stake`), fee routing, operator registry |
+
+For end-to-end protocol flows, see [PROTOCOL_FLOWS.md](PROTOCOL_FLOWS.md).
 
 ## Fee Model
 

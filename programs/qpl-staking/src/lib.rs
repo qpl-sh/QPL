@@ -12,6 +12,39 @@ pub const UNBOND_PERIOD_SECS: i64 = 7 * 24 * 3600;
 pub mod qpl_staking {
     use super::*;
 
+    /// Initialize the staking configuration PDA.
+    /// Must be called once before any slashing can occur.
+    /// Sets the governance authority and treasury address.
+    pub fn initialize_config(
+        ctx: Context<InitializeConfig>,
+        treasury: Pubkey,
+    ) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        config.governance = ctx.accounts.governance.key();
+        config.treasury = treasury;
+        config.bump = ctx.bumps.config;
+
+        emit!(ConfigInitialized {
+            governance: config.governance,
+            treasury: config.treasury,
+        });
+
+        Ok(())
+    }
+
+    /// Initialize the stake vault PDA.
+    /// Must be called once before operators can stake.
+    pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
+        let vault = &mut ctx.accounts.stake_vault;
+        vault.bump = ctx.bumps.stake_vault;
+
+        emit!(VaultInitialized {
+            authority: ctx.accounts.authority.key(),
+        });
+
+        Ok(())
+    }
+
     /// Register as an operator by staking SOL.
     /// Transfers `amount` lamports from the operator to the stake vault.
     pub fn stake(
@@ -58,10 +91,12 @@ pub mod qpl_staking {
     }
 
     /// Initiate unstaking — begins the 7-day unbonding period.
+    /// Can be called by active operators OR slashed (inactive) operators
+    /// to recover remaining funds.
     pub fn initiate_unstake(ctx: Context<InitiateUnstake>) -> Result<()> {
         let operator_account = &mut ctx.accounts.operator_account;
 
-        require!(operator_account.active, QplStakingError::NotActive);
+        require!(operator_account.staked_amount > 0, QplStakingError::NothingStaked);
         require!(operator_account.unstake_time == 0, QplStakingError::AlreadyUnstaking);
 
         let clock = Clock::get()?;
@@ -90,13 +125,19 @@ pub mod qpl_staking {
         let amount = operator_account.staked_amount;
         operator_account.staked_amount = 0;
 
-        // Transfer SOL from vault back to operator
-        let vault_bump = ctx.accounts.stake_vault.bump;
-        let seeds = &[b"vault".as_ref(), &[vault_bump]];
-        let signer_seeds = &[&seeds[..]];
-
-        **ctx.accounts.stake_vault.to_account_info().try_borrow_mut_lamports()? -= amount;
-        **ctx.accounts.operator.to_account_info().try_borrow_mut_lamports()? += amount;
+        // Transfer SOL from vault back to operator (checked arithmetic for defense-in-depth)
+        let vault_info = ctx.accounts.stake_vault.to_account_info();
+        **vault_info.try_borrow_mut_lamports()? = vault_info
+            .lamports()
+            .checked_sub(amount)
+            .ok_or(QplStakingError::InsufficientVaultBalance)?;
+        **ctx.accounts.operator.to_account_info().try_borrow_mut_lamports()? = ctx
+            .accounts
+            .operator
+            .to_account_info()
+            .lamports()
+            .checked_add(amount)
+            .ok_or(QplStakingError::Overflow)?;
 
         emit!(StakeWithdrawn {
             operator_id: operator_account.operator_id,
@@ -119,16 +160,27 @@ pub mod qpl_staking {
             QplStakingError::SlashExceedsStake
         );
 
-        operator_account.staked_amount -= amount;
+        operator_account.staked_amount = operator_account
+            .staked_amount
+            .checked_sub(amount)
+            .ok_or(QplStakingError::SlashExceedsStake)?;
 
         // Deactivate if below minimum
         if operator_account.staked_amount < MIN_STAKE_LAMPORTS && operator_account.active {
             operator_account.active = false;
         }
 
-        // Transfer slashed amount to treasury
-        **ctx.accounts.stake_vault.to_account_info().try_borrow_mut_lamports()? -= amount;
-        **ctx.accounts.treasury.to_account_info().try_borrow_mut_lamports()? += amount;
+        // Transfer slashed amount to treasury (checked arithmetic)
+        let vault_info = ctx.accounts.stake_vault.to_account_info();
+        **vault_info.try_borrow_mut_lamports()? = vault_info
+            .lamports()
+            .checked_sub(amount)
+            .ok_or(QplStakingError::InsufficientVaultBalance)?;
+        let treasury_info = ctx.accounts.treasury.to_account_info();
+        **treasury_info.try_borrow_mut_lamports()? = treasury_info
+            .lamports()
+            .checked_add(amount)
+            .ok_or(QplStakingError::Overflow)?;
 
         emit!(OperatorSlashed {
             operator_id: operator_account.operator_id,
@@ -138,9 +190,83 @@ pub mod qpl_staking {
 
         Ok(())
     }
+
+    /// Deposit additional stake to an existing operator account.
+    /// Allows operators to top up after partial slashing or increase their collateral.
+    /// Reactivates the operator if stake rises above MIN_STAKE_LAMPORTS.
+    pub fn deposit_stake(ctx: Context<DepositStake>, amount: u64) -> Result<()> {
+        require!(amount > 0, QplStakingError::InsufficientStake);
+
+        let operator_account = &mut ctx.accounts.operator_account;
+        require!(
+            operator_account.unstake_time == 0,
+            QplStakingError::CannotDepositWhileUnstaking
+        );
+
+        // Transfer SOL from operator to vault
+        let transfer_ix = anchor_lang::system_program::Transfer {
+            from: ctx.accounts.operator.to_account_info(),
+            to: ctx.accounts.stake_vault.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            transfer_ix,
+        );
+        anchor_lang::system_program::transfer(cpi_ctx, amount)?;
+
+        operator_account.staked_amount += amount;
+
+        // Reactivate if above minimum and not in unbonding
+        if operator_account.staked_amount >= MIN_STAKE_LAMPORTS {
+            operator_account.active = true;
+        }
+
+        emit!(StakeDeposited {
+            operator_id: operator_account.operator_id,
+            amount,
+            new_total: operator_account.staked_amount,
+            reactivated: operator_account.active,
+        });
+
+        Ok(())
+    }
 }
 
 // ─── Accounts ────────────────────────────────────────────────────────────────
+
+#[derive(Accounts)]
+pub struct InitializeConfig<'info> {
+    #[account(mut)]
+    pub governance: Signer<'info>,
+
+    #[account(
+        init,
+        payer = governance,
+        space = 8 + 32 + 32 + 1, // discriminator + governance + treasury + bump
+        seeds = [b"config"],
+        bump
+    )]
+    pub config: Account<'info, StakingConfig>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeVault<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + 1, // discriminator + bump
+        seeds = [b"vault"],
+        bump
+    )]
+    pub stake_vault: Account<'info, StakeVault>,
+
+    pub system_program: Program<'info, System>,
+}
 
 #[derive(Accounts)]
 #[instruction(operator_id: [u8; 32])]
@@ -226,6 +352,28 @@ pub struct Slash<'info> {
     pub config: Account<'info, StakingConfig>,
 }
 
+#[derive(Accounts)]
+pub struct DepositStake<'info> {
+    #[account(mut)]
+    pub operator: Signer<'info>,
+
+    #[account(
+        mut,
+        has_one = authority @ QplStakingError::Unauthorized,
+        constraint = operator.key() == operator_account.authority
+    )]
+    pub operator_account: Account<'info, OperatorAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"vault"],
+        bump = stake_vault.bump
+    )]
+    pub stake_vault: Account<'info, StakeVault>,
+
+    pub system_program: Program<'info, System>,
+}
+
 // ─── State ───────────────────────────────────────────────────────────────────
 
 #[account]
@@ -270,6 +418,17 @@ pub struct StakingConfig {
 // ─── Events ──────────────────────────────────────────────────────────────────
 
 #[event]
+pub struct ConfigInitialized {
+    pub governance: Pubkey,
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct VaultInitialized {
+    pub authority: Pubkey,
+}
+
+#[event]
 pub struct OperatorStaked {
     pub operator_id: [u8; 32],
     pub authority: Pubkey,
@@ -295,6 +454,14 @@ pub struct OperatorSlashed {
     pub reason: String,
 }
 
+#[event]
+pub struct StakeDeposited {
+    pub operator_id: [u8; 32],
+    pub amount: u64,
+    pub new_total: u64,
+    pub reactivated: bool,
+}
+
 // ─── Errors ──────────────────────────────────────────────────────────────────
 
 #[error_code]
@@ -317,4 +484,12 @@ pub enum QplStakingError {
     SlashExceedsStake,
     #[msg("Unauthorized")]
     Unauthorized,
+    #[msg("No staked amount to unstake")]
+    NothingStaked,
+    #[msg("Cannot deposit while unstaking is in progress")]
+    CannotDepositWhileUnstaking,
+    #[msg("Vault has insufficient balance")]
+    InsufficientVaultBalance,
+    #[msg("Arithmetic overflow")]
+    Overflow,
 }

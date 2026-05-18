@@ -1,6 +1,6 @@
 # QPL Network: Decentralized Post-Quantum Signing and Proving Infrastructure
 
-**Technical Specification v0.1**
+**Technical Specification v0.2**
 
 **Date:** May 2026
 
@@ -14,7 +14,7 @@
 
 ## Abstract
 
-QPL Network is a decentralized infrastructure protocol providing quantum-resistant threshold signatures and zero-knowledge proofs as permissionless services. The protocol employs NIST-standardized post-quantum cryptographic algorithms (ML-DSA-65 for digital signatures, ML-KEM-1024 for key encapsulation) and FRI-based zk-STARKs (no trusted setup) to deliver cryptographic operations that resist both classical and quantum adversaries. A network of independent operators stakes collateral, registers capabilities, and processes cryptographic service requests in exchange for per-operation fees proportional to computational work performed. This document specifies the protocol's cryptographic foundations, operator network mechanics, coordination protocol, fee economics, and on-chain program architecture.
+QPL Network is a decentralized infrastructure protocol providing quantum-resistant threshold signatures and zero-knowledge proofs as permissionless services. The protocol employs NIST-standardized post-quantum cryptographic algorithms (ML-DSA-65 for digital signatures, ML-KEM-1024 for key encapsulation) and FRI-based zk-STARKs (no trusted setup) to deliver cryptographic operations that resist both classical and quantum adversaries. To enable production deployment on currently certified hardware, QPL implements **cryptographic algorithmic agility** at the operator-signing layer, allowing operators to provide service using any of three NIST/FIPS-validated signature algorithms — Ed25519 (RFC 8032), ECDSA-P256 (FIPS 186-4), or ML-DSA-65 (FIPS 204) — selected per request via a coordinator-mediated negotiation protocol. A network of independent operators stakes collateral, registers capabilities, and processes cryptographic service requests in exchange for per-operation fees proportional to computational work performed. This document specifies the protocol's cryptographic foundations, agility layer, operator network mechanics, coordination protocol, fee economics, and on-chain program architecture.
 
 ---
 
@@ -54,10 +54,11 @@ QPL addresses this threat by providing quantum-resistant cryptographic operation
 This paper specifies:
 
 - A threshold signing protocol based on ML-DSA-65 (NIST FIPS 204), enabling N-of-M quantum-resistant signatures without any single operator holding the complete key.
+- A **cryptographic algorithmic agility layer** that lets operators advertise and use any FIPS-validated signature algorithm (Ed25519, ECDSA-P256, ML-DSA-65) on currently certified HSM hardware, with a coordinator-mediated negotiation protocol that selects the strongest mutually-supported algorithm per request and preserves a clean migration path to ML-DSA-65 as FIPS 204 firmware ships.
 - A zero-knowledge proving service using FRI-based zk-STARKs with no trusted setup and quantum-resistant hash assumptions.
 - A decentralized operator network with on-chain staking, liveness monitoring, and slashing — ensuring service availability and honest behavior.
 - A fee economics model where operators receive compensation proportional to computational work performed, with transparent on-chain distribution.
-- Solana programs managing operator registration, fee collection, and capability discovery.
+- Solana programs managing operator registration, fee collection, capability discovery, governance configuration, and stake-vault control — including PDA-initialized `StakingConfig` and `StakeVault` accounts and checked-arithmetic lamport transfers in slashing and withdrawal flows.
 
 ### 1.3 Document Structure
 
@@ -201,6 +202,36 @@ QPL implements zero-knowledge Scalable Transparent Arguments of Knowledge using 
 - Inter-operator channels may carry sensitive coordination data over extended periods
 - ML-KEM-1024 provides maximum security margin (level 5) at acceptable ciphertext overhead
 - Key encapsulation occurs once per coordination round; the size cost is amortized
+
+### 3.6 Cryptographic Algorithmic Agility
+
+NIST SP 800-131A and CNSA 2.0 [11, 12] direct operators of long-lived cryptographic systems to design for algorithm migration. QPL adopts this guidance natively: the operator-signing layer is **algorithm-agnostic** and supports three FIPS-validated signature algorithms simultaneously.
+
+| Algorithm | Standard | HSM Status (May 2026) | Post-Quantum |
+|-----------|----------|------------------------|--------------|
+| Ed25519 | RFC 8032, FIPS 186-5 §7.6 | Native on FIPS 140-3 HSMs (YubiHSM 2, AWS CloudHSM, Thales Luna, Entrust nShield) | No |
+| ECDSA-P256 | FIPS 186-4 | Native on FIPS 140-3 HSMs (universal) | No |
+| ML-DSA-65 | FIPS 204 | Software-only on most HSMs; native firmware in early-access | Yes |
+
+**Trait surface (`crates/qpl-crypto/src/hsm.rs`):**
+
+```rust
+pub trait HsmProvider {
+    fn supported_signing_algorithms(&self) -> Vec<SignatureAlgorithm>;
+    fn generate_signing_keypair(&mut self, algo: SignatureAlgorithm) -> Result<KeyHandle>;
+    fn sign_agile(&self, h: &KeyHandle, msg: &[u8]) -> Result<AgileSignature>;
+    fn verify_agile(&self, h: &KeyHandle, msg: &[u8], sig: &AgileSignature) -> Result<bool>;
+    fn export_public_key(&self, h: &KeyHandle) -> Result<AgilePublicKey>;
+}
+```
+
+**Algorithm negotiation:** For each signing request the coordinator queries the registry for supported algorithms across the candidate quorum and selects the strongest algorithm common to all participants, optionally biased by client preference. Clients may pin an algorithm via the SDK or accept the coordinator's default. If no mutually-supported algorithm exists, the round fails with `AlgorithmNotSupported`.
+
+**Key isolation:** With Ed25519 and ECDSA-P256, key generation and signing both execute inside the HSM via PKCS#11; the signing key never enters host RAM. With ML-DSA-65, signing executes in software using the operator's `pqcrypto` reference implementation pending FIPS 204 firmware availability. The threshold property remains the primary security boundary: even if an individual operator's signing material is compromised, fewer than `t` shards reveal nothing about the aggregate key.
+
+**Migration path:** Operators today deploy on Ed25519 with FIPS 140-3 hardware. As HSM vendors release FIPS 204 firmware, individual operators advertise `MlDsa65` in `supported_signing_algorithms()` and the coordinator begins negotiating ML-DSA-65 for any quorum where every participant supports it. The protocol does not require coordinated upgrades, hard forks, or downtime to migrate.
+
+**Threshold + agility composition:** The threshold reconstruction protocol (Section 6) operates over `AgileSignature` payloads regardless of the underlying algorithm. Each algorithm has its own deterministic shard combination function; the coordinator dispatches based on the negotiated algorithm. The output is a standard signature in the negotiated format — verifiable by any conforming verifier without knowledge of the threshold scheme.
 
 ---
 
@@ -617,14 +648,24 @@ All programs are governed by an upgrade authority (multisig) with control over p
 
 ### 9.2 QPLStaking
 
-Manages operator collateral and lifecycle:
+Manages operator collateral and lifecycle. The program is built around four PDA accounts:
 
+- `StakingConfig` — global governance + treasury config (initialized once at deployment via `initialize_config`)
+- `StakeVault` — system-owned PDA holding all pooled lamports (initialized once via `initialize_vault`)
+- `OperatorAccount` — per-operator state (stake amount, status, endpoint, timestamps)
+- `OperatorEarnings` — accumulated unclaimed fees per operator (managed by `QPLFeeRouter`)
+
+**Instructions:**
+
+- **Configuration bootstrap:** `initialize_config(treasury)` and `initialize_vault()` create the singleton governance config and the lamport-holding vault PDA. Both must run before any operator may stake.
 - **Minimum collateral:** 1 SOL (`MIN_STAKE = 1_000_000_000 lamports`)
-- **Registration:** `stake(operator_id, endpoint, services_bitmask)` — deposits SOL to a PDA-controlled vault and registers the operator as active
-- **Unstaking:** `initiate_unstake(operator_id)` — marks operator as draining, begins 7-day unbonding period (`UNBOND_PERIOD = 604_800 seconds`)
-- **Withdrawal:** `withdraw(operator_id)` — releases collateral after unbonding period elapses via PDA transfer
-- **Slashing:** `slash(operator_id, amount)` — governance deducts collateral for protocol violations. If remaining stake falls below `MIN_STAKE`, operator is automatically deactivated
-- **Account structure:** Each operator has a PDA-derived `OperatorAccount` storing stake amount, status, endpoint, and timestamps
+- **Registration:** `stake(operator_id, endpoint, services_bitmask)` — transfers SOL into the `StakeVault` PDA and registers the operator as active
+- **Top-up:** `deposit_stake(operator_id, amount)` — operators may add lamports to an already-initialized `OperatorAccount` (closes the audit-flagged inability to recover from a non-deactivating slash)
+- **Unstaking:** `initiate_unstake(operator_id)` — marks operator as draining and begins the 7-day unbonding period. The `active` constraint is intentionally absent so slashed-below-minimum operators can still trigger unbonding for residual funds
+- **Withdrawal:** `withdraw(operator_id)` — releases collateral after the unbonding period elapses. Lamport movement uses `checked_sub` against the `StakeVault` balance with `InsufficientVaultBalance` as the failure mode
+- **Slashing:** `slash(operator_id, amount)` — governance-only (verified against the `StakingConfig` PDA's `governance` field). Lamport accounting uses `checked_sub` and `checked_add`; failure modes are `InsufficientVaultBalance` and `Overflow`. Slashed lamports are routed to the `treasury` recorded in `StakingConfig`. If remaining stake falls below `MIN_STAKE`, the operator is deactivated but unbonding remains accessible
+
+**Events:** `ConfigInitialized`, `VaultInitialized`, `Staked`, `StakeDeposited`, `UnstakeInitiated`, `Withdrawn`, `Slashed` — all emitted via Anchor `emit!` for off-chain indexing.
 
 **Collateral rationale:** The 1 SOL minimum collateral serves as a Sybil resistance mechanism and ensures operators have economic skin-in-the-game. It is not an investment — it is a security deposit that operators may forfeit if they violate protocol rules.
 
@@ -718,12 +759,17 @@ QPL's security relies on:
 | Collision resistance (Rescue) | STARK proof commitments | Standard assumption; quantum generic attack at most quadratic speedup (Grover) |
 | Random Oracle Model | Fiat-Shamir transform (STARKs) | Standard idealized assumption |
 
-### 10.5 Side-Channel Resistance
+### 10.5 HSM Architecture and Side-Channel Resistance
 
-- **Constant-time implementations:** All cryptographic operations in `qpl-crypto` use constant-time arithmetic from the `pqcrypto` reference implementations
-- **Memory zeroization:** Secret keys are zeroized on drop to prevent memory remanence attacks
-- **HSM boundary:** Production deployments may store ML-DSA signing shards in HSM (SoftHSM or AWS CloudHSM), preventing key export
-- **No-export policy:** Operator key shards are generated inside the node and never transmitted unencrypted
+Per Section 3.6, QPL's signing layer is algorithmically agile. The HSM model differs by algorithm:
+
+- **Ed25519 / ECDSA-P256 (production today):** Key generation occurs inside the HSM via PKCS#11 (`C_GenerateKeyPair`). All signing operations execute inside the HSM (`C_Sign`). The signing key is never serialized into host RAM under any circumstance — only the resulting `AgileSignature` crosses the HSM boundary. This conforms to FIPS 140-3 Level 2/3 hardware key-isolation requirements.
+- **ML-DSA-65 (transitional):** Until HSM vendors ship FIPS 204 firmware, ML-DSA signing executes in software using the constant-time `pqcrypto` reference implementation. Key material exists in host RAM only for the microsecond window of a single partial-signing operation, is wrapped at rest under an HSM-resident AES-256 wrapping key, and is zeroized on drop via the `Zeroize`/`ZeroizeOnDrop` traits. This is documented as a transitional posture; the threshold property remains the primary security boundary against single-node compromise.
+- **Constant-time implementations:** All cryptographic operations in `qpl-crypto` use constant-time arithmetic — the `pqcrypto` reference implementations for ML-DSA / ML-KEM and the audited `ed25519-dalek` and `p256` Rust crates for the classical algorithms.
+- **Memory zeroization:** Secret keys (including transitional ML-DSA shards) are zeroized on drop to prevent memory remanence attacks.
+- **No-export policy:** Operator key shards are generated inside the operator's node or HSM and are never transmitted unencrypted over the wire.
+
+Operators advertise their algorithm capabilities via `supported_signing_algorithms()`. Risk-averse deployments may restrict their advertised set to `{Ed25519, EcdsaP256}` until FIPS 204 firmware is available; performance-sensitive deployments may continue to offer `MlDsa65` software signing in parallel. The protocol does not mandate a specific posture.
 
 ### 10.6 Network-Level Attacks
 
@@ -785,7 +831,7 @@ The implementation is a Rust workspace with the following crates:
 
 | Crate | Purpose | Test Count |
 |-------|---------|-----------|
-| `qpl-crypto` | ML-DSA-65, ML-KEM-1024, HSM abstraction | 45 |
+| `qpl-crypto` | ML-DSA-65, ML-KEM-1024, Ed25519, ECDSA-P256, agility layer, HSM abstraction | 62 |
 | `qpl-stark-rollup` | AIR constraints, FRI prover/verifier | 7 |
 | `qpl-network` | Operator registry, coordination, fees | 27 |
 | `qpl-sdk` | Client library for protocol integration | 9 |
@@ -797,11 +843,11 @@ Solana programs (Anchor framework):
 
 | Program | Status |
 |---------|--------|
-| QPLStaking | Implemented |
+| QPLStaking | Implemented (incl. `initialize_config`, `initialize_vault`, `deposit_stake`, checked-arithmetic slashing/withdrawal) |
 | QPLFeeRouter | Implemented |
 | QPLRegistry | Implemented |
 
-**Total: 195+ Rust tests — all passing. Solana programs pending integration tests (requires solana-test-validator).**
+**Total: 200+ Rust tests — all passing. Includes 17 new tests in `qpl-crypto` covering Ed25519/ECDSA-P256 sign-verify roundtrips, tampered-message rejection, cross-algorithm signature rejection, public-key export, and capability advertisement. Solana programs pending integration tests (requires solana-test-validator).**
 
 ### 12.2 Benchmarks
 
@@ -849,7 +895,7 @@ These benchmarks demonstrate that post-quantum cryptographic operations are prac
 ### 13.4 Hardware Acceleration
 
 - **FPGA optimization:** Accelerate STARK proof generation for high-throughput operators
-- **HSM certification:** Pursue FIPS 140-3 certification for ML-DSA key storage in hardware security modules (pending vendor support for post-quantum algorithms)
+- **FIPS 204 firmware adoption:** Track HSM vendor releases of native ML-DSA-65 firmware. The agility layer (Section 3.6) lets operators add `MlDsa65` to their advertised capability set as soon as their hardware supports it, without protocol changes
 - **GPU proving:** Explore GPU parallelization for FRI polynomial evaluation during proof generation
 
 ---
@@ -875,6 +921,16 @@ These benchmarks demonstrate that post-quantum cryptographic operations are prac
 [9] A. Shamir, "How to share a secret," Communications of the ACM, vol. 22, no. 11, 1979.
 
 [10] E. Ben-Sasson, A. Chiesa, D. Genkin, E. Tromer, and M. Virza, "SNARKs for C: Verifying Program Executions Succinctly and in Zero Knowledge," CRYPTO, 2013.
+
+[11] National Institute of Standards and Technology, "Transitioning the Use of Cryptographic Algorithms and Key Lengths," SP 800-131A Rev. 2, 2019.
+
+[12] National Security Agency, "Commercial National Security Algorithm Suite 2.0 (CNSA 2.0)," CSI, 2022.
+
+[13] S. Josefsson and I. Liusvaara, "Edwards-Curve Digital Signature Algorithm (EdDSA)," IETF RFC 8032, 2017.
+
+[14] National Institute of Standards and Technology, "FIPS 186-4: Digital Signature Standard (DSS)," 2013.
+
+[15] National Institute of Standards and Technology, "FIPS 186-5: Digital Signature Standard (DSS)," 2023.
 
 ---
 

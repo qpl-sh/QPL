@@ -1,4 +1,6 @@
 use anchor_lang::prelude::*;
+use anchor_lang::AccountDeserialize;
+use anchor_lang::AccountSerialize;
 
 declare_id!("QPLFee1111111111111111111111111111111111111");
 
@@ -54,8 +56,11 @@ pub mod qpl_fee_router {
         Ok(())
     }
 
-    /// Deduct fee from a protocol's prepaid balance and record for distribution.
+    /// Deduct fee from a protocol's prepaid balance and distribute to all parties.
     /// Called by governance/coordinator after an operation completes.
+    ///
+    /// Participant `OperatorEarnings` PDAs must be passed via `remaining_accounts`
+    /// in the same order as the `participants` vector.
     pub fn charge_fee(
         ctx: Context<ChargeFee>,
         amount: u64,
@@ -68,6 +73,13 @@ pub mod qpl_fee_router {
         let balance = &mut ctx.accounts.protocol_balance;
         require!(balance.balance >= amount, QplFeeError::InsufficientBalance);
 
+        // Validate remaining_accounts matches participants length
+        let remaining = ctx.remaining_accounts;
+        require!(
+            remaining.len() == participants.len(),
+            QplFeeError::ParticipantAccountMismatch
+        );
+
         // Deduct from protocol balance
         balance.balance -= amount;
 
@@ -76,26 +88,54 @@ pub mod qpl_fee_router {
         let treasury_amount = amount * TREASURY_SHARE_PCT as u64 / 100;
         let participant_pool = amount - coordinator_amount - treasury_amount;
         let per_participant = participant_pool / participants.len() as u64;
+        let remainder = participant_pool % participants.len() as u64;
 
-        // Record coordinator earnings
+        // Record coordinator earnings (base share + integer division dust)
         let coordinator_earnings = &mut ctx.accounts.coordinator_earnings;
         coordinator_earnings.operator = coordinator;
-        coordinator_earnings.claimable += coordinator_amount;
+        coordinator_earnings.claimable += coordinator_amount + remainder;
+
+        // Distribute participant shares via remaining_accounts
+        for (i, participant_key) in participants.iter().enumerate() {
+            let (expected_pda, _bump) = Pubkey::find_program_address(
+                &[b"earnings", participant_key.as_ref()],
+                ctx.program_id,
+            );
+            let account_info = &remaining[i];
+            require!(
+                account_info.key() == expected_pda,
+                QplFeeError::InvalidParticipantAccount
+            );
+            require!(
+                account_info.owner == ctx.program_id,
+                QplFeeError::InvalidParticipantAccount
+            );
+
+            // Deserialize, increment, re-serialize
+            let mut data = account_info.try_borrow_mut_data()?;
+            let mut earnings =
+                OperatorEarnings::try_deserialize(&mut &data[..])
+                    .map_err(|_| QplFeeError::InvalidParticipantAccount)?;
+            earnings.claimable += per_participant;
+            earnings
+                .try_serialize(&mut &mut data[..])
+                .map_err(|_| QplFeeError::InvalidParticipantAccount)?;
+        }
 
         // Transfer treasury share immediately
-        let vault_bump = ctx.accounts.fee_vault.bump;
         **ctx.accounts.fee_vault.to_account_info().try_borrow_mut_lamports()? -= treasury_amount;
         **ctx.accounts.treasury.to_account_info().try_borrow_mut_lamports()? += treasury_amount;
 
         // Update config totals
         let config = &mut ctx.accounts.config;
         config.total_fees_collected += amount;
-        config.total_fees_distributed += treasury_amount;
+        config.total_fees_distributed +=
+            treasury_amount + coordinator_amount + remainder + (per_participant * participants.len() as u64);
 
         emit!(FeeCharged {
             protocol: balance.protocol,
             total_fee: amount,
-            coordinator_amount,
+            coordinator_amount: coordinator_amount + remainder,
             per_participant,
             treasury_amount,
             participant_count: participants.len() as u8,
@@ -122,6 +162,16 @@ pub mod qpl_fee_router {
             amount,
         });
 
+        Ok(())
+    }
+
+    /// Initialize an earnings PDA for a participant operator.
+    /// Must be called before `charge_fee` can credit a participant.
+    pub fn init_participant_earnings(ctx: Context<InitParticipantEarnings>) -> Result<()> {
+        let earnings = &mut ctx.accounts.earnings;
+        earnings.operator = ctx.accounts.operator.key();
+        earnings.claimable = 0;
+        earnings.total_claimed = 0;
         Ok(())
     }
 }
@@ -227,6 +277,26 @@ pub struct Claim<'info> {
     pub fee_vault: Account<'info, FeeVault>,
 }
 
+#[derive(Accounts)]
+pub struct InitParticipantEarnings<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    /// CHECK: Operator identity for PDA derivation
+    pub operator: UncheckedAccount<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = OperatorEarnings::SPACE,
+        seeds = [b"earnings", operator.key().as_ref()],
+        bump
+    )]
+    pub earnings: Account<'info, OperatorEarnings>,
+
+    pub system_program: Program<'info, System>,
+}
+
 // ─── State ───────────────────────────────────────────────────────────────────
 
 #[account]
@@ -309,4 +379,8 @@ pub enum QplFeeError {
     NothingToClaim,
     #[msg("Unauthorized")]
     Unauthorized,
+    #[msg("Remaining accounts length must match participants length")]
+    ParticipantAccountMismatch,
+    #[msg("Participant account does not match expected PDA")]
+    InvalidParticipantAccount,
 }
