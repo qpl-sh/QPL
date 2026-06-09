@@ -8,11 +8,15 @@
 //! - Collects per-operation fees from on-chain payments
 //! - Reports health and metrics
 
+mod auth;
 mod config;
+mod errors;
+mod handlers;
 mod identity;
+mod rate_limit;
 mod server;
 mod state;
-mod handlers;
+mod tls;
 
 use clap::Parser;
 use tracing_subscriber::{fmt, EnvFilter};

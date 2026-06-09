@@ -1,0 +1,32 @@
+[package]
+name = "qpl-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+qpl-crypto = { path = "../crates/qpl-crypto" }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+
+[[bin]]
+name = "fuzz_mldsa_verify"
+path = "fuzz_targets/fuzz_mldsa_verify.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_mlkem_decapsulate"
+path = "fuzz_targets/fuzz_mlkem_decapsulate.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ed25519_verify"
+path = "fuzz_targets/fuzz_ed25519_verify.rs"
+test = false
+doc = false

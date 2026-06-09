@@ -84,7 +84,10 @@
 //! ```
 
 use async_trait::async_trait;
-use pqcrypto_dilithium::dilithium3;
+// FIPS 204 ML-DSA-65 backed by `pqcrypto-mldsa`. The legacy `pqcrypto-dilithium`
+// crate (RUSTSEC-2024-0380) is no longer used; the module path `mldsa65` is the
+// successor to `dilithium3` and produces byte-identical key/signature material.
+use pqcrypto_mldsa::mldsa65;
 use pqcrypto_traits::sign::{DetachedSignature, PublicKey, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -521,8 +524,8 @@ impl fmt::Debug for SoftHsmProvider {
 #[async_trait]
 impl HsmProvider for SoftHsmProvider {
     async fn generate_ml_dsa_keypair(&self) -> Result<KeyHandle, HsmError> {
-        // Generate the keypair using dilithium3 directly
-        let (pk, sk) = dilithium3::keypair();
+        // Generate the keypair using ML-DSA-65 (FIPS 204) directly
+        let (pk, sk) = mldsa65::keypair();
 
         // Store the key bytes
         let stored_key = StoredMlDsaKey {
@@ -567,12 +570,12 @@ impl HsmProvider for SoftHsmProvider {
 
         match stored_key {
             StoredKey::MlDsa(key) => {
-                // Sign using dilithium3 directly
-                let sk = dilithium3::SecretKey::from_bytes(&key.secret_key_bytes).map_err(|e| {
+                // Sign using ML-DSA-65 (FIPS 204) directly
+                let sk = mldsa65::SecretKey::from_bytes(&key.secret_key_bytes).map_err(|e| {
                     HsmError::SigningFailed(format!("Failed to parse secret key: {:?}", e))
                 })?;
 
-                let sig = dilithium3::detached_sign(message, &sk);
+                let sig = mldsa65::detached_sign(message, &sk);
 
                 crate::ml_dsa::MlDsaSignature::from_bytes(sig.as_bytes())
                     .map_err(|e| HsmError::SigningFailed(format!("Invalid signature: {}", e)))
@@ -792,7 +795,8 @@ impl HsmProvider for SoftHsmProvider {
             }
             SignatureAlgorithm::EcdsaP256 => {
                 use p256::ecdsa::SigningKey;
-                use p256::elliptic_curve::sec1::ToEncodedPoint;
+                // NOTE: `to_encoded_point` is an inherent method on `VerifyingKey`
+                // in p256 0.13 / ecdsa 0.16 — no trait import is needed.
                 use rand_core::OsRng;
                 let signing_key = SigningKey::random(&mut OsRng);
                 let verifying_key = signing_key.verifying_key();
@@ -833,9 +837,9 @@ impl HsmProvider for SoftHsmProvider {
             .ok_or_else(|| HsmError::KeyNotFound(handle.id().to_string()))?;
         match stored {
             StoredKey::MlDsa(key) => {
-                let sk = dilithium3::SecretKey::from_bytes(&key.secret_key_bytes)
+                let sk = mldsa65::SecretKey::from_bytes(&key.secret_key_bytes)
                     .map_err(|e| HsmError::SigningFailed(format!("{:?}", e)))?;
-                let sig = dilithium3::detached_sign(message, &sk);
+                let sig = mldsa65::detached_sign(message, &sk);
                 AgileSignature::new(SignatureAlgorithm::MlDsa65, sig.as_bytes().to_vec())
                     .map_err(|e| HsmError::SigningFailed(e.to_string()))
             }
@@ -983,6 +987,18 @@ mod pkcs11_provider {
     use cryptoki::types::AuthPin;
     use pqcrypto_traits::sign::{DetachedSignature, PublicKey, SecretKey};
     use std::sync::Mutex;
+    use uuid::Uuid;
+
+    /// DER-encoded ASN.1 OID for the Ed25519 curve (`1.3.101.112`).
+    /// Used as the `CKA_EC_PARAMS` attribute when generating an Edwards keypair.
+    const ED25519_OID_DER: &[u8] = &[0x06, 0x03, 0x2B, 0x65, 0x70];
+
+    /// DER-encoded ASN.1 OID for the secp256r1 / NIST P-256 curve
+    /// (`1.2.840.10045.3.1.7`). Used as the `CKA_EC_PARAMS` attribute when
+    /// generating an ECDSA-P256 keypair.
+    const P256_OID_DER: &[u8] = &[
+        0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07,
+    ];
 
     /// Wrapper to make Session Send-safe.
     ///
@@ -996,12 +1012,21 @@ mod pkcs11_provider {
 
     /// Entry tracking PKCS#11 objects for a stored key.
     struct Pkcs11KeyEntry {
-        /// CKO_DATA object storing public key bytes (plaintext)
+        /// For ML-DSA: `CKO_DATA` object storing public key bytes (plaintext).
+        /// For Ed25519/ECDSA-P256: the actual `CKO_PUBLIC_KEY` object handle.
         public_object: ObjectHandle,
-        /// CKO_DATA object storing wrapped (AES-CBC-PAD encrypted) private key bytes
+        /// For ML-DSA: `CKO_DATA` object storing wrapped (AES-CBC-PAD encrypted) private key bytes.
+        /// For Ed25519/ECDSA-P256: the actual `CKO_PRIVATE_KEY` object handle.
+        /// In the latter case the key material NEVER leaves the HSM — we hold
+        /// only the opaque object handle.
         private_object: ObjectHandle,
         /// The type of cryptographic key
         key_type: KeyType,
+        /// Cached public-key bytes for HSM-native signing keys
+        /// (Ed25519 raw 32 bytes, ECDSA-P256 SEC1 compressed 33 bytes).
+        /// `None` for ML-DSA / ML-KEM where public material is fetched from
+        /// the on-token `CKO_DATA` object on demand.
+        cached_public_bytes: Option<Vec<u8>>,
     }
 
     /// PKCS#11-based HSM provider for production key management.
@@ -1203,6 +1228,16 @@ mod pkcs11_provider {
         ///
         /// Expects `[IV (16 bytes) || ciphertext]`.
         fn unwrap_key_material(&self, wrapped: &[u8]) -> Result<Vec<u8>, HsmError> {
+            // SECURITY WARNING: ML-DSA-65 signing currently unwraps the wrapped private key
+            // into host RAM for the duration of one signing operation. This is a transitional
+            // posture pending HSM vendor FIPS 204 firmware. Production deployments SHOULD
+            // negotiate Ed25519 or ECDSA-P256 (HSM-native, key never leaves the boundary).
+            // The threshold property remains the primary security boundary during this window.
+            //
+            // This helper is the single point through which wrapped ML-DSA shard
+            // material crosses the HSM boundary into process memory. The caller
+            // MUST zeroize the returned bytes immediately after the cryptographic
+            // operation completes (see `sign` and `decapsulate` below).
             if wrapped.len() < 17 {
                 return Err(HsmError::ProviderError(
                     "Wrapped key material too short (need at least IV + 1 block)".to_string(),
@@ -1267,13 +1302,249 @@ mod pkcs11_provider {
                 "CKA_VALUE attribute not found on data object".to_string(),
             ))
         }
+
+        /// Decodes an ASN.1 DER `OCTET STRING` (tag `0x04`) and returns the
+        /// inner content. PKCS#11 returns `CKA_EC_POINT` wrapped this way.
+        fn decode_octet_string(der: &[u8]) -> Result<Vec<u8>, HsmError> {
+            if der.len() < 2 || der[0] != 0x04 {
+                return Err(HsmError::ProviderError(
+                    "CKA_EC_POINT: expected DER OCTET STRING (tag 0x04)".to_string(),
+                ));
+            }
+            let (content_len, header_len) = if der[1] & 0x80 == 0 {
+                (der[1] as usize, 2usize)
+            } else {
+                let nlen = (der[1] & 0x7f) as usize;
+                if nlen == 0 || nlen > 4 || der.len() < 2 + nlen {
+                    return Err(HsmError::ProviderError(
+                        "CKA_EC_POINT: malformed DER length".to_string(),
+                    ));
+                }
+                let mut len = 0usize;
+                for &b in &der[2..2 + nlen] {
+                    len = (len << 8) | (b as usize);
+                }
+                (len, 2 + nlen)
+            };
+            if der.len() < header_len + content_len {
+                return Err(HsmError::ProviderError(
+                    "CKA_EC_POINT: truncated DER OCTET STRING".to_string(),
+                ));
+            }
+            Ok(der[header_len..header_len + content_len].to_vec())
+        }
+
+        /// Reads `CKA_EC_POINT` from a public-key object handle and returns
+        /// the raw point bytes (DER OCTET STRING wrapper stripped).
+        fn read_ec_point(&self, public_object: ObjectHandle) -> Result<Vec<u8>, HsmError> {
+            let session_guard = self.session.lock().map_err(|_| {
+                HsmError::ProviderError("Session lock poisoned".to_string())
+            })?;
+            let attrs = session_guard
+                .0
+                .get_attributes(public_object, &[AttributeType::EcPoint])
+                .map_err(|e| {
+                    HsmError::ProviderError(format!(
+                        "Failed to read CKA_EC_POINT: {:?}",
+                        e
+                    ))
+                })?;
+            for attr in attrs {
+                if let Attribute::EcPoint(der) = attr {
+                    return Self::decode_octet_string(&der);
+                }
+            }
+            Err(HsmError::ProviderError(
+                "CKA_EC_POINT attribute not found on public-key object".to_string(),
+            ))
+        }
+
+        /// Generates an Ed25519 keypair INSIDE the HSM via
+        /// `C_GenerateKeyPair` with `CKM_EC_EDWARDS_KEY_PAIR_GEN`. The private
+        /// key never leaves the HSM (`CKA_EXTRACTABLE = false`,
+        /// `CKA_SENSITIVE = true`). The public key is read back via
+        /// `CKA_EC_POINT` and cached in memory.
+        fn generate_ed25519_keypair_pkcs11(&self) -> Result<KeyHandle, HsmError> {
+            let key_id = Uuid::new_v4().to_string();
+            let pub_label = format!("QPL_ED25519_PUB_{}", key_id);
+            let priv_label = format!("QPL_ED25519_PRIV_{}", key_id);
+
+            let pub_template = vec![
+                Attribute::Class(ObjectClass::PUBLIC_KEY),
+                Attribute::KeyType(Pkcs11KeyType::EC_EDWARDS),
+                Attribute::Token(true),
+                Attribute::Private(false),
+                Attribute::Verify(true),
+                Attribute::Label(pub_label.as_bytes().to_vec()),
+                Attribute::EcParams(ED25519_OID_DER.to_vec()),
+            ];
+            let priv_template = vec![
+                Attribute::Class(ObjectClass::PRIVATE_KEY),
+                Attribute::KeyType(Pkcs11KeyType::EC_EDWARDS),
+                Attribute::Token(true),
+                Attribute::Private(true),
+                Attribute::Sensitive(true),
+                Attribute::Extractable(false),
+                Attribute::Sign(true),
+                Attribute::Label(priv_label.as_bytes().to_vec()),
+            ];
+
+            let (pub_handle, priv_handle) = {
+                let session_guard = self.session.lock().map_err(|_| {
+                    HsmError::ProviderError("Session lock poisoned".to_string())
+                })?;
+                session_guard
+                    .0
+                    .generate_key_pair(
+                        &Mechanism::EccEdwardsKeyPairGen,
+                        &pub_template,
+                        &priv_template,
+                    )
+                    .map_err(|e| {
+                        HsmError::KeyGenerationFailed(format!(
+                            "Ed25519 C_GenerateKeyPair failed: {:?}",
+                            e
+                        ))
+                    })?
+            };
+
+            // Read CKA_EC_POINT for the freshly generated public key (raw 32 B for Ed25519).
+            let pk_bytes = self.read_ec_point(pub_handle)?;
+            if pk_bytes.len() != 32 {
+                return Err(HsmError::KeyGenerationFailed(format!(
+                    "Ed25519 public key has unexpected length {} (want 32)",
+                    pk_bytes.len()
+                )));
+            }
+
+            {
+                let mut map = self.key_map.write().map_err(|_| {
+                    HsmError::ProviderError("Key map lock poisoned".to_string())
+                })?;
+                map.insert(
+                    key_id.clone(),
+                    Pkcs11KeyEntry {
+                        public_object: pub_handle,
+                        private_object: priv_handle,
+                        key_type: KeyType::Ed25519,
+                        cached_public_bytes: Some(pk_bytes),
+                    },
+                );
+            }
+
+            Ok(KeyHandle::new(key_id, KeyType::Ed25519))
+        }
+
+        /// Generates an ECDSA-P256 keypair INSIDE the HSM via
+        /// `C_GenerateKeyPair` with `CKM_EC_KEY_PAIR_GEN`. The private key
+        /// never leaves the HSM. The public point is read via `CKA_EC_POINT`,
+        /// re-encoded in SEC1 compressed form (33 bytes) and cached.
+        fn generate_ecdsa_p256_keypair_pkcs11(&self) -> Result<KeyHandle, HsmError> {
+            let key_id = Uuid::new_v4().to_string();
+            let pub_label = format!("QPL_P256_PUB_{}", key_id);
+            let priv_label = format!("QPL_P256_PRIV_{}", key_id);
+
+            let pub_template = vec![
+                Attribute::Class(ObjectClass::PUBLIC_KEY),
+                Attribute::KeyType(Pkcs11KeyType::EC),
+                Attribute::Token(true),
+                Attribute::Private(false),
+                Attribute::Verify(true),
+                Attribute::Label(pub_label.as_bytes().to_vec()),
+                Attribute::EcParams(P256_OID_DER.to_vec()),
+            ];
+            let priv_template = vec![
+                Attribute::Class(ObjectClass::PRIVATE_KEY),
+                Attribute::KeyType(Pkcs11KeyType::EC),
+                Attribute::Token(true),
+                Attribute::Private(true),
+                Attribute::Sensitive(true),
+                Attribute::Extractable(false),
+                Attribute::Sign(true),
+                Attribute::Label(priv_label.as_bytes().to_vec()),
+            ];
+
+            let (pub_handle, priv_handle) = {
+                let session_guard = self.session.lock().map_err(|_| {
+                    HsmError::ProviderError("Session lock poisoned".to_string())
+                })?;
+                session_guard
+                    .0
+                    .generate_key_pair(
+                        &Mechanism::EccKeyPairGen,
+                        &pub_template,
+                        &priv_template,
+                    )
+                    .map_err(|e| {
+                        HsmError::KeyGenerationFailed(format!(
+                            "P-256 C_GenerateKeyPair failed: {:?}",
+                            e
+                        ))
+                    })?
+            };
+
+            // Read CKA_EC_POINT and re-encode SEC1 compressed (33 B).
+            let raw_point = self.read_ec_point(pub_handle)?;
+            let verifying_key =
+                p256::ecdsa::VerifyingKey::from_sec1_bytes(&raw_point).map_err(|e| {
+                    HsmError::KeyGenerationFailed(format!(
+                        "HSM returned invalid P-256 public point: {}",
+                        e
+                    ))
+                })?;
+            let pk_compressed = verifying_key.to_encoded_point(true).as_bytes().to_vec();
+
+            {
+                let mut map = self.key_map.write().map_err(|_| {
+                    HsmError::ProviderError("Key map lock poisoned".to_string())
+                })?;
+                map.insert(
+                    key_id.clone(),
+                    Pkcs11KeyEntry {
+                        public_object: pub_handle,
+                        private_object: priv_handle,
+                        key_type: KeyType::EcdsaP256,
+                        cached_public_bytes: Some(pk_compressed),
+                    },
+                );
+            }
+
+            Ok(KeyHandle::new(key_id, KeyType::EcdsaP256))
+        }
+
+        /// Looks up a key entry and returns the requested fields, cloning the
+        /// cached public bytes if present. Releases the read lock before
+        /// returning so callers can re-acquire other locks.
+        fn lookup_entry(&self, id: &str) -> Result<LookupEntry, HsmError> {
+            let map = self.key_map.read().map_err(|_| {
+                HsmError::ProviderError("Key map lock poisoned".to_string())
+            })?;
+            let entry = map
+                .get(id)
+                .ok_or_else(|| HsmError::KeyNotFound(id.to_string()))?;
+            Ok(LookupEntry {
+                public_object: entry.public_object,
+                private_object: entry.private_object,
+                key_type: entry.key_type,
+                cached_public_bytes: entry.cached_public_bytes.clone(),
+            })
+        }
+    }
+
+    /// Snapshot of fields read out of a `Pkcs11KeyEntry` without holding the
+    /// `key_map` lock across the rest of the operation.
+    struct LookupEntry {
+        public_object: ObjectHandle,
+        private_object: ObjectHandle,
+        key_type: KeyType,
+        cached_public_bytes: Option<Vec<u8>>,
     }
 
     #[async_trait]
     impl HsmProvider for Pkcs11HsmProvider {
         async fn generate_ml_dsa_keypair(&self) -> Result<KeyHandle, HsmError> {
             // Generate ML-DSA-65 keypair in software
-            let (pk, sk) = pqcrypto_dilithium::dilithium3::keypair();
+            let (pk, sk) = pqcrypto_mldsa::mldsa65::keypair();
             let pk_bytes = pk.as_bytes().to_vec();
             let mut sk_bytes = sk.as_bytes().to_vec();
 
@@ -1301,6 +1572,7 @@ mod pkcs11_provider {
                         public_object: pub_handle,
                         private_object: priv_handle,
                         key_type: KeyType::MlDsa,
+                        cached_public_bytes: None,
                     },
                 );
             }
@@ -1340,12 +1612,22 @@ mod pkcs11_provider {
             let wrapped = self.retrieve_data_object(priv_object)?;
             let mut sk_bytes = self.unwrap_key_material(&wrapped)?;
 
+            // SECURITY WARNING: ML-DSA-65 signing currently unwraps the wrapped private key
+            // into host RAM for the duration of one signing operation. This is a transitional
+            // posture pending HSM vendor FIPS 204 firmware. Production deployments SHOULD
+            // negotiate Ed25519 or ECDSA-P256 (HSM-native, key never leaves the boundary).
+            // The threshold property remains the primary security boundary during this window.
+            //
+            // The closure below is intentionally short and bracketed by the
+            // `sk_bytes.zeroize()` call after `result` so that the unwrapped
+            // shard material is wiped from RAM as soon as `detached_sign`
+            // returns, regardless of success or failure.
             // Sign in software, then zeroize
             let result = (|| -> Result<crate::ml_dsa::MlDsaSignature, HsmError> {
-                let sk = pqcrypto_dilithium::dilithium3::SecretKey::from_bytes(&sk_bytes)
+                let sk = pqcrypto_mldsa::mldsa65::SecretKey::from_bytes(&sk_bytes)
                     .map_err(|e| HsmError::SigningFailed(format!("Failed to parse secret key: {:?}", e)))?;
 
-                let sig = pqcrypto_dilithium::dilithium3::detached_sign(message, &sk);
+                let sig = pqcrypto_mldsa::mldsa65::detached_sign(message, &sk);
 
                 crate::ml_dsa::MlDsaSignature::from_bytes(sig.as_bytes())
                     .map_err(|e| HsmError::SigningFailed(format!("Invalid signature: {}", e)))
@@ -1428,6 +1710,7 @@ mod pkcs11_provider {
                         public_object: pub_handle,
                         private_object: priv_handle,
                         key_type: KeyType::MlKem,
+                        cached_public_bytes: None,
                     },
                 );
             }
@@ -1546,6 +1829,260 @@ mod pkcs11_provider {
                 })?;
 
             Ok(())
+        }
+
+        // ─── Algorithmic Agility API ───────────────────────────────────────
+        //
+        // Pkcs11HsmProvider exposes Ed25519 and ECDSA-P256 as HSM-native
+        // signing algorithms (key never leaves the boundary) in addition to
+        // the transitional ML-DSA-65 software-shim path.
+
+        fn supported_signing_algorithms(&self) -> Vec<crate::algorithm::SignatureAlgorithm> {
+            use crate::algorithm::SignatureAlgorithm;
+            vec![
+                SignatureAlgorithm::Ed25519,
+                SignatureAlgorithm::EcdsaP256,
+                SignatureAlgorithm::MlDsa65,
+            ]
+        }
+
+        async fn generate_signing_keypair(
+            &self,
+            algorithm: crate::algorithm::SignatureAlgorithm,
+        ) -> Result<KeyHandle, HsmError> {
+            use crate::algorithm::SignatureAlgorithm;
+            match algorithm {
+                SignatureAlgorithm::MlDsa65 => self.generate_ml_dsa_keypair().await,
+                SignatureAlgorithm::Ed25519 => self.generate_ed25519_keypair_pkcs11(),
+                SignatureAlgorithm::EcdsaP256 => self.generate_ecdsa_p256_keypair_pkcs11(),
+            }
+        }
+
+        async fn sign_agile(
+            &self,
+            handle: &KeyHandle,
+            message: &[u8],
+        ) -> Result<crate::algorithm::AgileSignature, HsmError> {
+            use crate::algorithm::{AgileSignature, SignatureAlgorithm};
+            let LookupEntry {
+                public_object: _,
+                private_object: priv_obj,
+                key_type: kt,
+                cached_public_bytes: _,
+            } = self.lookup_entry(handle.id())?;
+
+            // Sanity-check that the handle agrees with the on-token entry.
+            if kt != handle.key_type() {
+                return Err(HsmError::SigningFailed(format!(
+                    "Handle key type {} disagrees with stored entry {}",
+                    handle.key_type(),
+                    kt
+                )));
+            }
+
+            match kt {
+                KeyType::MlDsa => {
+                    // SECURITY WARNING: ML-DSA-65 signing currently unwraps the wrapped private key
+                    // into host RAM for the duration of one signing operation. This is a transitional
+                    // posture pending HSM vendor FIPS 204 firmware. Production deployments SHOULD
+                    // negotiate Ed25519 or ECDSA-P256 (HSM-native, key never leaves the boundary).
+                    // The threshold property remains the primary security boundary during this window.
+                    let sig = self.sign(handle, message).await?;
+                    AgileSignature::new(SignatureAlgorithm::MlDsa65, sig.as_bytes().to_vec())
+                        .map_err(|e| HsmError::SigningFailed(e.to_string()))
+                }
+                KeyType::Ed25519 => {
+                    let session_guard = self.session.lock().map_err(|_| {
+                        HsmError::ProviderError("Session lock poisoned".to_string())
+                    })?;
+                    let sig_bytes = session_guard
+                        .0
+                        .sign(&Mechanism::Eddsa, priv_obj, message)
+                        .map_err(|e| {
+                            HsmError::SigningFailed(format!(
+                                "PKCS#11 Ed25519 C_Sign failed: {:?}",
+                                e
+                            ))
+                        })?;
+                    AgileSignature::new(SignatureAlgorithm::Ed25519, sig_bytes)
+                        .map_err(|e| HsmError::SigningFailed(e.to_string()))
+                }
+                KeyType::EcdsaP256 => {
+                    let session_guard = self.session.lock().map_err(|_| {
+                        HsmError::ProviderError("Session lock poisoned".to_string())
+                    })?;
+                    // CKM_ECDSA_SHA256 hashes the message inside the HSM and
+                    // emits the IEEE P1363 r||s 64-byte signature, matching
+                    // the encoding our software verifier expects.
+                    let sig_bytes = session_guard
+                        .0
+                        .sign(&Mechanism::EcdsaSha256, priv_obj, message)
+                        .map_err(|e| {
+                            HsmError::SigningFailed(format!(
+                                "PKCS#11 ECDSA-P256 C_Sign failed: {:?}",
+                                e
+                            ))
+                        })?;
+                    AgileSignature::new(SignatureAlgorithm::EcdsaP256, sig_bytes)
+                        .map_err(|e| HsmError::SigningFailed(e.to_string()))
+                }
+                KeyType::MlKem => Err(HsmError::SigningFailed(format!(
+                    "Key {} is an ML-KEM key, not a signing key",
+                    handle.id()
+                ))),
+            }
+        }
+
+        async fn verify_agile(
+            &self,
+            handle: &KeyHandle,
+            message: &[u8],
+            signature: &crate::algorithm::AgileSignature,
+        ) -> Result<bool, HsmError> {
+            let key_alg = handle.key_type().as_signature_algorithm().ok_or_else(|| {
+                HsmError::VerificationFailed(format!(
+                    "Key {} is not a signing key",
+                    handle.id()
+                ))
+            })?;
+            if key_alg != signature.algorithm {
+                return Err(HsmError::VerificationFailed(format!(
+                    "Algorithm mismatch: key is {}, signature is {}",
+                    key_alg, signature.algorithm
+                )));
+            }
+
+            let LookupEntry {
+                public_object: pub_obj,
+                private_object: _,
+                key_type: kt,
+                cached_public_bytes: cached_pk,
+            } = self.lookup_entry(handle.id())?;
+
+            match kt {
+                KeyType::MlDsa => {
+                    // ML-DSA verification re-uses the existing software path
+                    // (public key fetched from on-token CKO_DATA).
+                    let ml_sig = crate::ml_dsa::MlDsaSignature::from_bytes(&signature.bytes)
+                        .map_err(|e| HsmError::VerificationFailed(e.to_string()))?;
+                    self.verify(handle, message, &ml_sig).await
+                }
+                KeyType::Ed25519 => {
+                    use ed25519_dalek::{
+                        Signature as EdSignature, Verifier, VerifyingKey,
+                    };
+                    let pk_bytes = match cached_pk {
+                        Some(b) => b,
+                        None => self.read_ec_point(pub_obj)?,
+                    };
+                    let pk_arr: [u8; 32] = pk_bytes.as_slice().try_into().map_err(|_| {
+                        HsmError::VerificationFailed(
+                            "Ed25519 public key wrong length".to_string(),
+                        )
+                    })?;
+                    let verifying_key = VerifyingKey::from_bytes(&pk_arr).map_err(|e| {
+                        HsmError::VerificationFailed(format!(
+                            "Invalid Ed25519 public key: {}",
+                            e
+                        ))
+                    })?;
+                    let sig_arr: [u8; 64] =
+                        signature.bytes.as_slice().try_into().map_err(|_| {
+                            HsmError::VerificationFailed(
+                                "Ed25519 signature wrong length".to_string(),
+                            )
+                        })?;
+                    let sig = EdSignature::from_bytes(&sig_arr);
+                    Ok(verifying_key.verify(message, &sig).is_ok())
+                }
+                KeyType::EcdsaP256 => {
+                    use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
+                    let pk_bytes = match cached_pk {
+                        Some(b) => b,
+                        None => {
+                            // Re-encode SEC1 compressed for downstream consumers.
+                            let raw = self.read_ec_point(pub_obj)?;
+                            let vk =
+                                VerifyingKey::from_sec1_bytes(&raw).map_err(|e| {
+                                    HsmError::VerificationFailed(format!(
+                                        "Invalid P-256 public key from HSM: {}",
+                                        e
+                                    ))
+                                })?;
+                            vk.to_encoded_point(true).as_bytes().to_vec()
+                        }
+                    };
+                    let verifying_key =
+                        VerifyingKey::from_sec1_bytes(&pk_bytes).map_err(|e| {
+                            HsmError::VerificationFailed(format!(
+                                "Invalid P-256 public key: {}",
+                                e
+                            ))
+                        })?;
+                    let sig = Signature::from_slice(&signature.bytes).map_err(|e| {
+                        HsmError::VerificationFailed(format!(
+                            "Invalid P-256 signature: {}",
+                            e
+                        ))
+                    })?;
+                    Ok(verifying_key.verify(message, &sig).is_ok())
+                }
+                KeyType::MlKem => Err(HsmError::VerificationFailed(format!(
+                    "Key {} is an ML-KEM key, not a signing key",
+                    handle.id()
+                ))),
+            }
+        }
+
+        async fn export_public_key(
+            &self,
+            handle: &KeyHandle,
+        ) -> Result<crate::algorithm::AgilePublicKey, HsmError> {
+            use crate::algorithm::{AgilePublicKey, SignatureAlgorithm};
+            let LookupEntry {
+                public_object: pub_obj,
+                private_object: _,
+                key_type: kt,
+                cached_public_bytes: cached_pk,
+            } = self.lookup_entry(handle.id())?;
+            match kt {
+                KeyType::MlDsa => {
+                    let pk_bytes = self.retrieve_data_object(pub_obj)?;
+                    AgilePublicKey::new(SignatureAlgorithm::MlDsa65, pk_bytes)
+                        .map_err(|e| HsmError::ProviderError(e.to_string()))
+                }
+                KeyType::Ed25519 => {
+                    let pk_bytes = match cached_pk {
+                        Some(b) => b,
+                        None => self.read_ec_point(pub_obj)?,
+                    };
+                    AgilePublicKey::new(SignatureAlgorithm::Ed25519, pk_bytes)
+                        .map_err(|e| HsmError::ProviderError(e.to_string()))
+                }
+                KeyType::EcdsaP256 => {
+                    let pk_bytes = match cached_pk {
+                        Some(b) => b,
+                        None => {
+                            let raw = self.read_ec_point(pub_obj)?;
+                            let vk =
+                                p256::ecdsa::VerifyingKey::from_sec1_bytes(&raw)
+                                    .map_err(|e| {
+                                        HsmError::ProviderError(format!(
+                                            "Invalid P-256 public key: {}",
+                                            e
+                                        ))
+                                    })?;
+                            vk.to_encoded_point(true).as_bytes().to_vec()
+                        }
+                    };
+                    AgilePublicKey::new(SignatureAlgorithm::EcdsaP256, pk_bytes)
+                        .map_err(|e| HsmError::ProviderError(e.to_string()))
+                }
+                KeyType::MlKem => Err(HsmError::ProviderError(format!(
+                    "Key {} is an ML-KEM key — not a signing key",
+                    handle.id()
+                ))),
+            }
         }
     }
 
@@ -1779,7 +2316,7 @@ mod tests {
             .await
             .expect("Decapsulation with key B should succeed");
 
-        // Kyber is IND-CCA2: wrong key produces different shared secret, not an error
+        // ML-KEM is IND-CCA2: wrong key produces different shared secret, not an error
         assert_ne!(
             shared_secret_a.as_bytes(),
             shared_secret_b.as_bytes(),
@@ -1852,7 +2389,7 @@ mod tests {
             .expect("ML-KEM keypair 2 generation should succeed");
 
         // Verify all keys have unique IDs
-        let ids = vec![
+        let ids = [
             dsa_handle_1.id(),
             dsa_handle_2.id(),
             dsa_handle_3.id(),

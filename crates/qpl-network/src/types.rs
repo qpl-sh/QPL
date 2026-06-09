@@ -10,7 +10,11 @@ use std::fmt;
 use uuid::Uuid;
 
 /// Unique identifier for an operator node, derived from its ML-DSA public key.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+///
+/// `PartialOrd` / `Ord` are derived so that operator IDs can be compared
+/// lexicographically — used as a deterministic tie-breaker in coordinator
+/// selection (see [`crate::routing::RequestRouter::select_coordinator`]).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct OperatorId(pub [u8; 32]);
 
 impl OperatorId {

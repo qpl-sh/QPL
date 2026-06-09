@@ -10,6 +10,7 @@ members = [
     "services/qpl-node",
     "tests/e2e",
 ]
+exclude = ["fuzz"]
 
 [workspace.package]
 version = "0.1.0"

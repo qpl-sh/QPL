@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! # ML-KEM (FIPS 203) Key Encapsulation Mechanism
 //!
-//! This module implements ML-KEM using Kyber1024 for the highest security level (Level 5).
+//! This module implements ML-KEM-1024 (FIPS 203, security category 5) backed by
+//! the `pqcrypto-mlkem` crate's `mlkem1024` module. ML-KEM-1024 is the
+//! standardized successor name for Kyber-1024; the byte layout is identical, so
+//! historical Kyber-1024 test vectors continue to round-trip unchanged.
 //! It is part of the Ligare (QPL) post-quantum cryptographic foundation.
 //!
 //! ## Security Properties
@@ -29,7 +32,7 @@
 //! assert_eq!(shared_secret_sender.as_bytes(), shared_secret_receiver.as_bytes());
 //! ```
 
-use pqcrypto_kyber::kyber1024;
+use pqcrypto_mlkem::mlkem1024;
 use pqcrypto_traits::kem::{
     Ciphertext as PqCiphertext, PublicKey as PqPublicKey, SecretKey as PqSecretKey,
     SharedSecret as PqSharedSecret,
@@ -38,16 +41,16 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-/// Expected byte length of a Kyber1024 public key.
+/// Expected byte length of an ML-KEM-1024 public key.
 pub const PUBLIC_KEY_BYTES: usize = 1568;
 
-/// Expected byte length of a Kyber1024 secret key.
+/// Expected byte length of an ML-KEM-1024 secret key.
 pub const SECRET_KEY_BYTES: usize = 3168;
 
-/// Expected byte length of a Kyber1024 ciphertext.
+/// Expected byte length of an ML-KEM-1024 ciphertext.
 pub const CIPHERTEXT_BYTES: usize = 1568;
 
-/// Expected byte length of a Kyber1024 shared secret.
+/// Expected byte length of an ML-KEM-1024 shared secret.
 pub const SHARED_SECRET_BYTES: usize = 32;
 
 /// Errors that can occur during ML-KEM operations.
@@ -72,7 +75,7 @@ pub enum MlKemError {
 
 /// ML-KEM public key wrapper.
 ///
-/// Wraps the raw public key bytes from Kyber1024.
+/// Wraps the raw public key bytes from ML-KEM-1024.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MlKemPublicKey {
     bytes: Vec<u8>,
@@ -113,7 +116,7 @@ impl std::fmt::Debug for MlKemPublicKey {
 
 /// ML-KEM secret key wrapper.
 ///
-/// Wraps the raw secret key bytes from Kyber1024.
+/// Wraps the raw secret key bytes from ML-KEM-1024.
 /// The secret key is zeroized on drop to prevent memory leakage.
 /// Clone is intentionally not implemented to prevent accidental duplication of secret material.
 #[derive(Zeroize, ZeroizeOnDrop)]
@@ -244,9 +247,9 @@ pub struct MlKemKeyPair {
 }
 
 impl MlKemKeyPair {
-    /// Generates a new ML-KEM keypair using Kyber1024.
+    /// Generates a new ML-KEM-1024 keypair (FIPS 203).
     pub fn generate() -> Result<Self, MlKemError> {
-        let (pk, sk) = kyber1024::keypair();
+        let (pk, sk) = mlkem1024::keypair();
 
         let public_key = MlKemPublicKey {
             bytes: pk.as_bytes().to_vec(),
@@ -283,11 +286,11 @@ impl std::fmt::Debug for MlKemKeyPair {
 /// to the owner of the corresponding secret key, who can then decapsulate it
 /// to recover the same shared secret.
 pub fn encapsulate(public_key: &MlKemPublicKey) -> Result<(MlKemCiphertext, SharedSecret), MlKemError> {
-    let pk = kyber1024::PublicKey::from_bytes(&public_key.bytes).map_err(|e| {
+    let pk = mlkem1024::PublicKey::from_bytes(&public_key.bytes).map_err(|e| {
         MlKemError::EncapsulationError(format!("Failed to parse public key: {:?}", e))
     })?;
 
-    let (ss, ct) = kyber1024::encapsulate(&pk);
+    let (ss, ct) = mlkem1024::encapsulate(&pk);
 
     let ciphertext = MlKemCiphertext {
         bytes: ct.as_bytes().to_vec(),
@@ -301,22 +304,22 @@ pub fn encapsulate(public_key: &MlKemPublicKey) -> Result<(MlKemCiphertext, Shar
 
 /// Decapsulates a ciphertext using the given secret key to recover the shared secret.
 ///
-/// Note: Due to Kyber's IND-CCA2 security, decapsulating with the wrong secret key
+/// Note: Due to ML-KEM's IND-CCA2 security, decapsulating with the wrong secret key
 /// will produce a pseudorandom shared secret rather than an error. This prevents
 /// chosen-ciphertext attacks.
 pub fn decapsulate(
     ciphertext: &MlKemCiphertext,
     secret_key: &MlKemSecretKey,
 ) -> Result<SharedSecret, MlKemError> {
-    let ct = kyber1024::Ciphertext::from_bytes(&ciphertext.bytes).map_err(|e| {
+    let ct = mlkem1024::Ciphertext::from_bytes(&ciphertext.bytes).map_err(|e| {
         MlKemError::DecapsulationError(format!("Failed to parse ciphertext: {:?}", e))
     })?;
 
-    let sk = kyber1024::SecretKey::from_bytes(&secret_key.bytes).map_err(|e| {
+    let sk = mlkem1024::SecretKey::from_bytes(&secret_key.bytes).map_err(|e| {
         MlKemError::DecapsulationError(format!("Failed to parse secret key: {:?}", e))
     })?;
 
-    let ss = kyber1024::decapsulate(&ct, &sk);
+    let ss = mlkem1024::decapsulate(&ct, &sk);
 
     Ok(SharedSecret {
         bytes: ss.as_bytes().to_vec(),
@@ -385,7 +388,7 @@ mod tests {
         let shared_secret_wrong =
             decapsulate(&ciphertext, &keypair2.secret_key).expect("decapsulation should succeed");
 
-        // Kyber is IND-CCA2: wrong key produces different shared secret, not an error
+        // ML-KEM is IND-CCA2: wrong key produces different shared secret, not an error
         assert_ne!(
             shared_secret_sender.as_bytes(),
             shared_secret_wrong.as_bytes(),

@@ -34,14 +34,16 @@ impl RequestRouter {
 
         let request_hash = Self::hash_for_ring(request_id.0.as_bytes());
 
-        // Find the operator whose hash is closest (consistent hashing)
+        // Find the operator whose hash is closest (consistent hashing). On a
+        // distance tie, pick the lexicographically-smallest operator id so
+        // the result is deterministic across all honest replicas (F-2).
         let mut best: Option<&OperatorRecord> = None;
         let mut best_distance = u64::MAX;
 
         for op in operators {
             let op_hash = Self::hash_for_ring(&op.id.0);
             let distance = Self::ring_distance(request_hash, op_hash);
-            if distance < best_distance {
+            if Self::is_better_candidate(best, best_distance, op, distance) {
                 best_distance = distance;
                 best = Some(op);
             }
@@ -52,6 +54,27 @@ impl RequestRouter {
             needed: 1,
             available: 0,
         })
+    }
+
+    /// Returns `true` if `(candidate, candidate_distance)` should replace the
+    /// current best `(current, current_distance)` in coordinator selection.
+    ///
+    /// Tie-break rule: when distances are equal, the operator with the
+    /// lexicographically-smaller `OperatorId` wins. This makes selection
+    /// deterministic across honest nodes regardless of iteration order.
+    fn is_better_candidate(
+        current: Option<&OperatorRecord>,
+        current_distance: u64,
+        candidate: &OperatorRecord,
+        candidate_distance: u64,
+    ) -> bool {
+        match current {
+            None => true,
+            Some(curr) => {
+                candidate_distance < current_distance
+                    || (candidate_distance == current_distance && candidate.id < curr.id)
+            }
+        }
     }
 
     /// Selects a quorum of operators for a threshold operation.
@@ -206,5 +229,63 @@ mod tests {
 
         let selected = RequestRouter::select_single(ServiceType::Proving, &operators).unwrap();
         assert_eq!(selected.id, op2.id);
+    }
+
+    /// F-2 regression: when two operators share an identical ring distance,
+    /// `select_coordinator` must deterministically prefer the
+    /// lexicographically-smaller operator id, regardless of input ordering.
+    /// We exercise the tie-break logic directly via `is_better_candidate`
+    /// (engineering a SHA-256 collision is infeasible) and assert it picks
+    /// the smaller id on ties and is order-independent.
+    #[test]
+    fn test_select_coordinator_deterministic_tie_break() {
+        // Two operators with engineered equal distances: we feed identical
+        // distances into the tie-break helper and check it always picks the
+        // smaller id no matter the call order.
+        let mut low = make_operator(1, vec![ServiceType::Signing], 0.0);
+        let mut high = make_operator(2, vec![ServiceType::Signing], 0.0);
+        // Force ids to known relative ordering: low.id < high.id.
+        low.id = OperatorId([0x01; 32]);
+        high.id = OperatorId([0x02; 32]);
+        assert!(low.id < high.id);
+
+        let same_distance = 42u64;
+
+        // Order A: high first, then low — low must win.
+        let mut best: Option<&OperatorRecord> = None;
+        let mut best_d = u64::MAX;
+        for (op, d) in [(&high, same_distance), (&low, same_distance)] {
+            if RequestRouter::is_better_candidate(best, best_d, op, d) {
+                best = Some(op);
+                best_d = d;
+            }
+        }
+        assert_eq!(best.unwrap().id, low.id);
+
+        // Order B: low first, then high — low must still win.
+        let mut best: Option<&OperatorRecord> = None;
+        let mut best_d = u64::MAX;
+        for (op, d) in [(&low, same_distance), (&high, same_distance)] {
+            if RequestRouter::is_better_candidate(best, best_d, op, d) {
+                best = Some(op);
+                best_d = d;
+            }
+        }
+        assert_eq!(best.unwrap().id, low.id);
+
+        // Strictly smaller distance still beats id ordering.
+        assert!(RequestRouter::is_better_candidate(
+            Some(&low),
+            same_distance,
+            &high,
+            same_distance - 1,
+        ));
+        // Strictly larger distance never wins, even with smaller id.
+        assert!(!RequestRouter::is_better_candidate(
+            Some(&high),
+            same_distance,
+            &low,
+            same_distance + 1,
+        ));
     }
 }

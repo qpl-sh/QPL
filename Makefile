@@ -1,4 +1,4 @@
-.PHONY: build test lint clean bench
+.PHONY: build test lint clean bench fuzz
 
 # Build all components
 build:
@@ -98,3 +98,9 @@ test-crypto:
 
 test-rollup:
 	cargo test -p qpl-stark-rollup
+
+# ─── Fuzzing ──────────────────────────────────────────────────────────
+
+# Run ML-DSA verification fuzzer for 60 seconds (requires nightly)
+fuzz:
+	cargo +nightly fuzz run fuzz_mldsa_verify -- -max_total_time=60

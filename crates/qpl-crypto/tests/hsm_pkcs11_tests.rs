@@ -13,7 +13,7 @@
 
 #![cfg(feature = "cloudhsm")]
 
-use qpl_crypto::hsm::{HsmError, HsmProvider, KeyHandle, KeyType, Pkcs11HsmProvider};
+use qpl_crypto::hsm::{HsmError, HsmProvider, KeyHandle, KeyType, Pkcs11HsmProvider, SoftHsmProvider};
 use std::sync::Once;
 
 static INIT: Once = Once::new();
@@ -408,4 +408,54 @@ async fn test_pkcs11_concurrent_operations() {
     // Verify all keys are unique
     let ids: std::collections::HashSet<&str> = keys.iter().map(|k| k.id()).collect();
     assert_eq!(ids.len(), keys.len(), "All concurrent key IDs should be unique");
+}
+
+// ============================================================================
+// Provider Parity Tests (A-3 remediation)
+// ============================================================================
+
+/// Asserts that `Pkcs11HsmProvider` and `SoftHsmProvider` advertise the
+/// **same set** of supported signing algorithms. This is a regression guard
+/// for the A-3 finding: prior to FIX 1, `Pkcs11HsmProvider` only supported
+/// ML-DSA-65 via the default trait impl, while `SoftHsmProvider` supported
+/// Ed25519 / ECDSA-P256 / ML-DSA-65. After FIX 1 the two providers must
+/// expose identical agility surfaces so operators can switch between dev
+/// (SoftHsm) and prod (Pkcs11) without losing algorithms.
+#[tokio::test]
+async fn test_pkcs11_softhsm_supported_algorithms_parity() {
+    use std::collections::HashSet;
+
+    let pkcs11_hsm = setup_provider();
+    let soft_hsm = SoftHsmProvider::new();
+
+    let pkcs11_algos: HashSet<_> = pkcs11_hsm
+        .supported_signing_algorithms()
+        .into_iter()
+        .collect();
+    let soft_algos: HashSet<_> = soft_hsm
+        .supported_signing_algorithms()
+        .into_iter()
+        .collect();
+
+    assert_eq!(
+        pkcs11_algos, soft_algos,
+        "Pkcs11HsmProvider and SoftHsmProvider must advertise the same \
+         supported_signing_algorithms() set after the A-1 / A-3 remediation. \
+         pkcs11={:?} softhsm={:?}",
+        pkcs11_algos, soft_algos
+    );
+
+    // And the set must include all three first-class agile algorithms.
+    use qpl_crypto::algorithm::SignatureAlgorithm;
+    for algo in [
+        SignatureAlgorithm::Ed25519,
+        SignatureAlgorithm::EcdsaP256,
+        SignatureAlgorithm::MlDsa65,
+    ] {
+        assert!(
+            pkcs11_algos.contains(&algo),
+            "Pkcs11HsmProvider must support {:?}",
+            algo
+        );
+    }
 }

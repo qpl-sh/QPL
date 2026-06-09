@@ -65,4 +65,34 @@ pub enum NetworkError {
 
     #[error("cryptographic error: {0}")]
     CryptoError(String),
+
+    /// A message with a (sender, sequence) pair already observed was received
+    /// (potential replay attack). Carries the sender and the offending sequence
+    /// number.
+    #[error("replay detected: sender {0}, sequence {1} already observed")]
+    ReplayDetected(OperatorId, u64),
+
+    /// The message's `timestamp_nanos` field is outside the allowed clock-skew
+    /// window relative to the receiver's current wall clock.
+    #[error(
+        "timestamp out of window: now={now_nanos} msg={msg_nanos} \
+         max_past_nanos={max_skew_past_nanos} max_future_nanos={max_skew_future_nanos}"
+    )]
+    TimestampOutOfWindow {
+        now_nanos: u64,
+        msg_nanos: u64,
+        max_skew_past_nanos: u64,
+        max_skew_future_nanos: u64,
+    },
+
+    /// A message arrived with a sequence number that did not strictly exceed
+    /// the previously observed high-water mark for the same sender.
+    #[error(
+        "non-monotonic sequence from {sender}: got {got}, must be > {expected_gt}"
+    )]
+    NonMonotonicSequence {
+        sender: OperatorId,
+        expected_gt: u64,
+        got: u64,
+    },
 }
