@@ -1,6 +1,6 @@
 ---
 name: PQC Cryptography Expert
-description: NIST PQC specialist focused on ML-DSA (Dilithium) signing and ML-KEM (Kyber) key encapsulation for quantum-proof banking ledgers.
+description: NIST PQC specialist focused on ML-DSA (Dilithium) signing and ML-KEM (Kyber) key encapsulation for quantum-proof infrastructure.
 tools: [research, code-review, security-audit]
 ---
 

@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Last Updated:** 2026-06-09  
 **Classification:** Internal — Security Engineering  
-**Scope:** QPL (Quantum-Resistant Permissionless Liquidity) protocol infrastructure
+**Scope:** QPL (Quantum Proof Layer) protocol infrastructure
 
 ---
 

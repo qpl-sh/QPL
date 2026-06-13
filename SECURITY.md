@@ -1,6 +1,6 @@
 # Security Policy
 
-The QPL (Quantum-Resistant Permissionless Liquidity) project takes security seriously. As post-quantum cryptographic infrastructure for DeFi, we hold ourselves to the highest standards of security engineering. We appreciate the security community's efforts in helping us maintain a secure protocol.
+The QPL (Quantum Proof Layer) project takes security seriously. As post-quantum cryptographic infrastructure for DeFi, we hold ourselves to the highest standards of security engineering. We appreciate the security community's efforts in helping us maintain a secure protocol.
 
 ## Supported Versions
 

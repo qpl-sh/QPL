@@ -10,10 +10,10 @@
 ## Section 1: Hero
 
 **Headline:**  
-> Quantum-Proof Your Protocol
+> The Quantum Proof Layer for DeFi
 
 **Subheadline:**  
-> Post-quantum threshold signatures and STARK proofs as permissionless infrastructure. Open-source. Chain-agnostic. Live on Solana.
+> Post-quantum threshold signatures and STARK proofs as permissionless infrastructure. Plug in the layer that protects your protocol — open-source, chain-agnostic, live on Solana.
 
 **Primary CTA:**  
 `[Integrate Now →]` — links to docs/SDK

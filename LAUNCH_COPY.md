@@ -22,7 +22,7 @@ By then, it's too late. The keys are already in the archive.
 
 ### What QPL Does
 
-QPL (Quantum Proof Ledger) is a decentralized post-quantum signing and proving network on Solana. It replaces legacy cryptographic primitives with NIST-standardized post-quantum algorithms, delivered as infrastructure any protocol can integrate via SDK or JSON-RPC:
+QPL (Quantum Proof Layer) is a decentralized post-quantum signing and proving infrastructure layer on Solana. It replaces legacy cryptographic primitives with NIST-standardized post-quantum algorithms, delivered as infrastructure any protocol can integrate via SDK or JSON-RPC:
 
 - **PQC-MPC Threshold Signing** — ML-DSA-65 (NIST FIPS 204) threshold signatures with PKCS#11 HSM enforcement. Private keys never leave tamper-resistant hardware. Protocols get quantum-resistant custody without rewriting their stack.
 
