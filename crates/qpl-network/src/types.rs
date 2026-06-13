@@ -187,6 +187,16 @@ impl Urgency {
             Urgency::Instant => 2.0,
         }
     }
+
+    /// Integer percentage multiplier for deterministic fee calculation.
+    /// Standard = 100, Fast = 150, Instant = 200.
+    pub fn multiplier_pct(&self) -> u64 {
+        match self {
+            Urgency::Standard => 100,
+            Urgency::Fast => 150,
+            Urgency::Instant => 200,
+        }
+    }
 }
 
 /// Network-wide configuration parameters.

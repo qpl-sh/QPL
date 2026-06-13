@@ -4,7 +4,12 @@
 
 use crate::config::SdkConfig;
 use crate::errors::SdkError;
+use crate::generated::{
+    qpl_operator_service_client::QplOperatorServiceClient, FeePaymentProof, QuorumConfig,
+    SignRequest as ProtoSignRequest, Urgency as ProtoUrgency,
+};
 use qpl_network::QuorumRequirement;
+use tonic::transport::Channel;
 
 /// Result of a threshold signing operation.
 #[derive(Debug, Clone)]
@@ -16,14 +21,21 @@ pub struct SignResult {
 }
 
 /// Signing service client — provides quantum-proof threshold signatures.
-pub struct SigningService<'a> {
-    endpoint: &'a str,
-    config: &'a SdkConfig,
+pub struct SigningService {
+    client: QplOperatorServiceClient<Channel>,
+    #[allow(dead_code)]
+    config: SdkConfig,
 }
 
-impl<'a> SigningService<'a> {
-    pub(crate) fn new(endpoint: &'a str, config: &'a SdkConfig) -> Self {
-        Self { endpoint, config }
+impl SigningService {
+    pub(crate) async fn connect(endpoint: &str, config: &SdkConfig) -> Result<Self, SdkError> {
+        let client = QplOperatorServiceClient::connect(endpoint.to_string())
+            .await
+            .map_err(|e| SdkError::ConnectionFailed(e.to_string()))?;
+        Ok(Self {
+            client,
+            config: config.clone(),
+        })
     }
 
     /// Request a threshold ML-DSA signature.
@@ -37,32 +49,49 @@ impl<'a> SigningService<'a> {
     /// # use qpl_network::QuorumRequirement;
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = QplClient::connect(SdkConfig::testnet()).await?;
-    /// let result = client.signing().sign(b"transfer 100 USDC", QuorumRequirement::three_of_five()).await?;
+    /// let mut signing = client.signing().await?;
+    /// let result = signing.sign(b"transfer 100 USDC", QuorumRequirement::three_of_five()).await?;
     /// println!("Signature: {} bytes", result.signature.len());
     /// # Ok(())
     /// # }
     /// ```
     pub async fn sign(
-        &self,
+        &mut self,
         message: &[u8],
         quorum: QuorumRequirement,
     ) -> Result<SignResult, SdkError> {
-        // In production:
-        // 1. Call EstimateFee on the operator
-        // 2. Pay fee on-chain
-        // 3. Submit SignRequest with fee proof
-        // 4. Wait for SignResponse
-        // 5. Verify signature locally
+        let request = ProtoSignRequest {
+            request_id: Some(crate::generated::RequestId {
+                uuid: uuid::Uuid::new_v4().to_string(),
+            }),
+            message: message.to_vec(),
+            quorum: Some(QuorumConfig {
+                threshold: quorum.threshold as u32,
+                total: quorum.total as u32,
+            }),
+            fee_proof: Some(FeePaymentProof {
+                tx_signature: vec![],
+                fee_quote_id: String::new(),
+                slot: 0,
+            }),
+            urgency: ProtoUrgency::Standard as i32,
+        };
 
-        let _endpoint = self.endpoint;
-        let _config = self.config;
-        let _message = message;
-        let _quorum = quorum;
+        let response = self
+            .client
+            .request_sign(request)
+            .await
+            .map_err(|e| SdkError::SigningFailed(e.to_string()))?;
 
-        // Placeholder — will be implemented when gRPC client is wired
-        Err(SdkError::ConnectionFailed(
-            "gRPC client not yet connected — run against QPL testnet".to_string(),
-        ))
+        let resp = response.into_inner();
+        if !resp.success {
+            return Err(SdkError::SigningFailed(resp.error_message));
+        }
+
+        Ok(SignResult {
+            signature: resp.signature,
+            request_id: resp.request_id.map(|r| r.uuid).unwrap_or_default(),
+        })
     }
 
     /// Verify an ML-DSA signature locally (no network call, no fee).

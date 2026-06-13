@@ -140,6 +140,15 @@ impl MlDsaSecretKey {
         &self.bytes
     }
 
+    /// Returns an owned copy of the secret key bytes.
+    ///
+    /// # Security
+    ///
+    /// The caller is responsible for zeroizing the returned Vec when done.
+    pub fn to_bytes_vec(&self) -> Vec<u8> {
+        self.bytes.clone()
+    }
+
     /// Creates a secret key from raw bytes.
     ///
     /// # Errors
@@ -235,9 +244,33 @@ impl MlDsaKeyPair {
         })
     }
 
+    /// Reconstruct a keypair from raw public + secret key bytes.
+    ///
+    /// Used by the operator node to restore a keypair from persisted identity files.
+    pub fn from_raw(
+        public_key_bytes: Vec<u8>,
+        secret_key_bytes: Vec<u8>,
+    ) -> Result<Self, MlDsaError> {
+        let public_key = MlDsaPublicKey::from_bytes(&public_key_bytes)?;
+        let secret_key = MlDsaSecretKey::from_bytes(&secret_key_bytes)?;
+        Ok(Self {
+            public_key,
+            secret_key,
+        })
+    }
+
     /// Returns a reference to the public key.
     pub fn public_key(&self) -> &MlDsaPublicKey {
         &self.public_key
+    }
+
+    /// Returns a copy of the secret key bytes.
+    ///
+    /// # Security
+    ///
+    /// The caller must zeroize the returned Vec when done.
+    pub fn secret_key_bytes(&self) -> Vec<u8> {
+        self.secret_key.to_bytes_vec()
     }
 
     /// Signs a message using this keypair's secret key.

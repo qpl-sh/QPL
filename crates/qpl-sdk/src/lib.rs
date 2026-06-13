@@ -11,10 +11,12 @@
 //! let client = QplClient::connect(SdkConfig::testnet()).await?;
 //!
 //! // Threshold ML-DSA signing
-//! let sig = client.signing().sign(b"hello", Default::default()).await?;
+//! let mut signing = client.signing().await?;
+//! let sig = signing.sign(b"hello", Default::default()).await?;
 //!
 //! // STARK proving
-//! let proof = client.proving().prove(vec![], Default::default()).await?;
+//! let mut proving = client.proving().await?;
+//! let proof = proving.prove(vec![], Default::default()).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -22,6 +24,7 @@
 pub mod client;
 pub mod config;
 pub mod errors;
+pub mod generated;
 pub mod services;
 
 pub use client::QplClient;

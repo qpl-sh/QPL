@@ -188,7 +188,7 @@ Status legend: **FIXED** = remediated and verified this session • **OPEN-RESID
 | B-2 | Medium | Direct `**vault.lamports.borrow_mut()` mutation without checked-arith | **FIXED** | All lamport movements now `checked_add` / `checked_sub`, with `Overflow` and `InsufficientVaultBalance` error variants |
 | B-4 | Medium | `unwrap()` on `checked_add` in `deposit_balance` | **FIXED** | Replaced with `?` on checked arithmetic; tests verify overflow path |
 | B-3 | Medium | `qpl-staking` slashing math missing min-bond check | **OPEN-RESIDUAL (R-5)** | Out of scope of this remediation; tracked |
-| B-6 | Medium | `qpl-registry` lacks event emission on operator de-registration | **OPEN-RESIDUAL (R-5)** | Tracked |
+| B-6 | Medium | `qpl-registry` lacks event emission on operator de-registration | **RESOLVED** | `emit!(OperatorDeactivated { ... })` confirmed in `deactivate` instruction |
 | B-7 | Medium | Governance updates lack on-chain timelock | **OPEN-RESIDUAL (R-5)** | Tracked; mitigated operationally by multi-sig governance |
 
 ### Domain C — Network & STARK (qpl-network / qpl-stark-rollup)
@@ -212,7 +212,7 @@ Status legend: **FIXED** = remediated and verified this session • **OPEN-RESID
 | D-4 | High | Unmaintained `pqcrypto-dilithium` / `pqcrypto-kyber` (RUSTSEC-2024-0380/0381) | **FIXED** | Migrated to `pqcrypto-mldsa = =0.1.2` and `pqcrypto-mlkem = =0.1.1`; advisories no longer present in `cargo audit` output |
 | D-5 | Medium | `OperatorIdentity` did not zeroize secret material on drop | **FIXED** | `#[derive(Zeroize, ZeroizeOnDrop)]`; `secret_key: Zeroizing<Vec<u8>>`; tests assert clearing |
 | D-6 | Medium | JSON-RPC error responses leaked internal detail (paths, parse offsets) | **FIXED** | `errors::sanitized_error_response` returns `{code, message}` only; details logged to `tracing::error!`; tests assert no leakage |
-| D-7 | Low | Docker base images not pinned to digest | **OPEN-RESIDUAL (R-4)** | Documented in `Dockerfile`; release pipeline will pin |
+| D-7 | Low | Docker base images not pinned to digest | **RESOLVED** | Dockerfile pins `rust:1.78-slim@sha256:...` and `debian:bookworm-slim@sha256:...` |
 | D-8 | Info | `cargo deny` not yet wired into CI | **DEFERRED** | Operational follow-up |
 
 ### Newly tracked TODOs (introduced by remediation, accepted as residual)

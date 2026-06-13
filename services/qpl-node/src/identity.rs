@@ -14,6 +14,7 @@
 //! `#[zeroize(skip)]` because the public key is non-secret and must not
 //! be wiped (it can outlive the secret key for verification purposes).
 
+use qpl_crypto::ml_dsa::MlDsaKeyPair;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::path::Path;
@@ -69,22 +70,14 @@ mod zeroizing_hex_serde {
 }
 
 impl OperatorIdentity {
-    /// Generate a new random operator identity.
+    /// Generate a new random operator identity using ML-DSA-65 keygen.
     ///
-    /// Uses randomness for key generation. In production this would call
-    /// `qpl_crypto::ml_dsa::generate_keypair()`. For now we generate a
-    /// placeholder keypair to keep the qpl-node binary independent of
-    /// the heavyweight PQC dependency at build time.
+    /// Delegates to `qpl_crypto::ml_dsa::MlDsaKeyPair::generate()` for real
+    /// NIST FIPS 204 compliant key generation.
     pub fn generate() -> Result<Self, Box<dyn std::error::Error>> {
-        // Placeholder: 32 bytes random "public key" and 64 bytes "secret key".
-        // Real implementation delegates to qpl-crypto ML-DSA-65 keygen.
-        let mut public_key = vec![0u8; 32];
-        let mut secret_key = vec![0u8; 64];
-
-        use rand::RngCore;
-        let mut rng = rand::thread_rng();
-        rng.fill_bytes(&mut public_key);
-        rng.fill_bytes(&mut secret_key);
+        let keypair = MlDsaKeyPair::generate()?;
+        let public_key = keypair.public_key().as_bytes().to_vec();
+        let secret_key = keypair.secret_key_bytes();
 
         Ok(Self {
             public_key,
@@ -132,15 +125,17 @@ impl OperatorIdentity {
         &self.public_key
     }
 
-    /// Sign a message with this operator's secret key.
+    /// Sign a message with this operator's ML-DSA-65 secret key.
     ///
-    /// Placeholder — delegates to qpl-crypto in production.
-    pub fn sign(&self, _message: &[u8]) -> Vec<u8> {
-        // In production: qpl_crypto::ml_dsa::generate_keypair → keypair.sign
-        let mut sig = vec![0u8; 64];
-        use rand::RngCore;
-        rand::thread_rng().fill_bytes(&mut sig);
-        sig
+    /// Delegates to `qpl_crypto::ml_dsa` for real NIST FIPS 204 signing.
+    pub fn sign(&self, message: &[u8]) -> Vec<u8> {
+        let keypair =
+            MlDsaKeyPair::from_raw(self.public_key.clone(), self.secret_key.as_slice().to_vec())
+                .expect("operator keypair must be valid ML-DSA-65");
+        let sig = keypair
+            .sign(message)
+            .expect("ML-DSA-65 signing must succeed");
+        sig.as_bytes().to_vec()
     }
 }
 

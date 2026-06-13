@@ -1764,6 +1764,7 @@ dependencies = [
  "hex",
  "qpl-crypto",
  "qpl-network",
+ "qpl-stark-rollup",
  "rand",
  "rcgen",
  "rustls",

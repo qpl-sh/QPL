@@ -357,18 +357,16 @@ mod tests {
     fn test_gas_estimate_calculation() {
         let estimates = GasEstimates::standard();
 
-        // Base cost for 0 transactions
+        // Base cost for 0 transactions: base_verification + state_root_update
         let cost_0 = estimates.estimate_batch_cost(0);
-        assert_eq!(cost_0, 350_000 + 0 + 20_000);
+        assert_eq!(cost_0, 370_000);
 
         // Cost for 100 transactions
         let cost_100 = estimates.estimate_batch_cost(100);
-        assert_eq!(cost_100, 350_000 + (500 * 100) + 20_000);
         assert_eq!(cost_100, 420_000);
 
         // Cost for 1000 transactions
         let cost_1000 = estimates.estimate_batch_cost(1000);
-        assert_eq!(cost_1000, 350_000 + (500 * 1000) + 20_000);
         assert_eq!(cost_1000, 870_000);
     }
 
@@ -396,16 +394,12 @@ mod tests {
         // Verify constants are reasonable values
         assert!(SECURITY_LEVEL_BITS >= 80);
         assert!(SECURITY_LEVEL_BITS <= 256);
-
         assert!(HIGH_SECURITY_LEVEL_BITS > SECURITY_LEVEL_BITS);
-
         assert!(MAX_TRACE_LENGTH.is_power_of_two());
         assert!(MIN_TRACE_LENGTH.is_power_of_two());
         assert!(MAX_TRACE_LENGTH > MIN_TRACE_LENGTH);
-
         assert!(STANDARD_FRI_QUERIES > 0);
         assert!(HIGH_FRI_QUERIES > STANDARD_FRI_QUERIES);
-
         assert!(STANDARD_BLOWUP_FACTOR.is_power_of_two());
         assert!(HIGH_BLOWUP_FACTOR.is_power_of_two());
         assert!(HIGH_BLOWUP_FACTOR > STANDARD_BLOWUP_FACTOR);
@@ -433,7 +427,7 @@ mod tests {
         assert_eq!(custom.state_root_update, 15_000);
 
         let cost = custom.estimate_batch_cost(50);
-        assert_eq!(cost, 100_000 + (200 * 50) + 15_000);
+        assert_eq!(cost, 125_000);
     }
 
     #[test]

@@ -3,12 +3,11 @@
 //! Threshold signing handler.
 //!
 //! Coordinates N-of-M ML-DSA threshold signing across operators.
-//! In production: fan out partial sign requests, collect threshold responses,
-//! combine into full signature. For now: single-operator local sign.
+//! Delegates to `OperatorIdentity::sign()` which uses real ML-DSA-65
+//! via `qpl_crypto::ml_dsa::MlDsaKeyPair`.
 
 use crate::server::{SignRequest, SignResponse};
 use crate::state::NodeState;
-use std::sync::atomic::Ordering;
 
 /// Handle a threshold signing request.
 ///
@@ -35,17 +34,13 @@ pub async fn handle_sign(
         return Err("fee_proof_tx is required".into());
     }
 
-    // Step 2-5: In production, coordinate with peer operators.
-    // For now: local single-operator signature.
+    // Step 2-5: Single-operator ML-DSA-65 signature.
+    // Full threshold coordination (multi-operator) is a future enhancement.
     let signature = state.identity.sign(&req.message);
     let request_id = uuid::Uuid::new_v4().to_string();
 
-    // Record fee collection
-    state.metrics.record_fee(1000); // placeholder fee amount
-    state
-        .metrics
-        .fees_collected_micro_usd
-        .fetch_add(0, Ordering::Relaxed);
+    // Record fee: $0.025 = 25_000 micro-USD
+    state.metrics.record_fee(25_000);
 
     tracing::info!(
         request_id = %request_id,

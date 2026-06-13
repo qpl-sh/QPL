@@ -109,6 +109,10 @@ impl FeeCalculator {
     }
 
     /// Calculates a fee estimate for a given operation.
+    ///
+    /// Uses integer-only arithmetic to ensure deterministic results
+    /// across all CPU architectures (x86, ARM, etc.).
+    /// Multipliers are applied as: `total = base_fee * threshold * urgency_pct / 100`
     pub fn estimate(
         &self,
         request_id: RequestId,
@@ -117,11 +121,16 @@ impl FeeCalculator {
         urgency: Urgency,
     ) -> FeeEstimate {
         let base_fee = self.base_fee_for(operation);
-        let quorum_multiplier = quorum.map(|q| q.threshold as f64).unwrap_or(1.0);
-        let urgency_multiplier = urgency.multiplier();
+        let threshold = quorum.map(|q| q.threshold).unwrap_or(1) as u64;
+        let urgency_pct = urgency.multiplier_pct();
 
-        let total = (base_fee as f64 * quorum_multiplier * urgency_multiplier) as u64;
+        // Deterministic integer math: base * threshold * urgency_pct / 100
+        let total = base_fee * threshold * urgency_pct / 100;
         let operator_count = quorum.map(|q| q.threshold).unwrap_or(1);
+
+        // Derive floating-point multipliers for display only
+        let quorum_multiplier = threshold as f64;
+        let urgency_multiplier = urgency_pct as f64 / 100.0;
 
         FeeEstimate {
             quote_id: Uuid::new_v4(),

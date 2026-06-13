@@ -29,13 +29,17 @@ impl QplClient {
     }
 
     /// Access the threshold signing service (ML-DSA-65, N-of-M).
-    pub fn signing(&self) -> SigningService<'_> {
-        SigningService::new(&self.endpoint, &self.config)
+    ///
+    /// Establishes a gRPC connection to the operator node.
+    pub async fn signing(&self) -> Result<SigningService, SdkError> {
+        SigningService::connect(&self.endpoint, &self.config).await
     }
 
     /// Access the STARK proving service (FRI-based, Winterfell).
-    pub fn proving(&self) -> ProvingService<'_> {
-        ProvingService::new(&self.endpoint, &self.config)
+    ///
+    /// Establishes a gRPC connection to the operator node.
+    pub async fn proving(&self) -> Result<ProvingService, SdkError> {
+        ProvingService::connect(&self.endpoint, &self.config).await
     }
 
     /// Returns the connected endpoint.

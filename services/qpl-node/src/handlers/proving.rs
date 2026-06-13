@@ -2,19 +2,20 @@
 
 //! STARK proving handler.
 //!
-//! Generates FRI-based STARK proofs for transaction batches.
-//! In production: delegates to qpl-stark-rollup for Winterfell-based proving.
-//! For now: returns a placeholder proof.
+//! Generates FRI-based STARK proofs for transaction batches by delegating
+//! to `qpl-stark-rollup::SettlementProver` (Winterfell-based).
 
 use crate::server::{ProveRequest, ProveResponse};
 use crate::state::NodeState;
-use sha2::{Digest, Sha256};
+use qpl_stark_rollup::{
+    ProofConfig as StarkProofConfig, RollupState, SecurityLevel, SettlementProver, Transaction,
+};
 
 /// Handle a STARK proof generation request.
 ///
 /// Flow:
 /// 1. Verify fee payment proof
-/// 2. Deserialize transactions into AIR trace
+/// 2. Deserialize transactions from request bytes
 /// 3. Generate STARK proof via Winterfell prover
 /// 4. Verify proof locally
 /// 5. Return proof + public inputs to client
@@ -33,22 +34,33 @@ pub async fn handle_prove(
         return Err("fee_proof_tx is required".into());
     }
 
-    // Step 2-4: In production, delegates to qpl-stark-rollup.
-    // Placeholder: return a dummy proof structure.
-    let security_bits = if req.security_bits == 0 {
-        96
+    // Step 2: Deserialize transactions from JSON
+    let transactions: Vec<Transaction> = serde_json::from_slice(&req.transactions)
+        .map_err(|e| format!("failed to deserialize transactions: {}", e))?;
+
+    if transactions.is_empty() {
+        return Err("transaction batch must not be empty".into());
+    }
+
+    // Step 3: Select security level based on requested bits
+    let security_level = if req.security_bits >= 128 {
+        SecurityLevel::High128
     } else {
-        req.security_bits
+        SecurityLevel::Standard96
     };
 
-    // Simulate proof generation (real proof would be KBs)
-    let proof = vec![0xDE, 0xAD, 0xBE, 0xEF]; // Placeholder
+    let config = StarkProofConfig::new(security_level);
+    let prover = SettlementProver::new(config);
 
-    let mut hasher = Sha256::new();
-    hasher.update(&req.transactions);
-    hasher.update(security_bits.to_le_bytes());
-    let public_inputs = hasher.finalize().to_vec();
+    // Create initial state (empty — balances derived from transactions)
+    let initial_state = RollupState::new();
 
+    // Generate the STARK proof
+    let proof = prover.prove_batch(&transactions, &initial_state)?;
+
+    // Step 4: Serialize public inputs for client
+    let public_inputs = serde_json::to_vec(&proof.public_inputs)
+        .map_err(|e| format!("failed to serialize public inputs: {}", e))?;
     let request_id = uuid::Uuid::new_v4().to_string();
 
     // Record fee
@@ -56,12 +68,12 @@ pub async fn handle_prove(
 
     tracing::info!(
         request_id = %request_id,
-        proof_len = proof.len(),
+        proof_len = proof.proof_bytes.len(),
         "Prove request completed"
     );
 
     Ok(ProveResponse {
-        proof,
+        proof: proof.proof_bytes,
         public_inputs,
         request_id,
     })

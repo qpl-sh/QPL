@@ -10,6 +10,10 @@ pub const MIN_STAKE_LAMPORTS: u64 = 10_000_000_000;
 /// Unbonding period: 7 days in seconds
 pub const UNBOND_PERIOD_SECS: i64 = 7 * 24 * 3600;
 
+/// Slash dispute window: 24 hours in seconds.
+/// After governance initiates a slash, operators have this window to dispute.
+pub const SLASH_DISPUTE_WINDOW_SECS: i64 = 24 * 3600;
+
 #[program]
 pub mod qpl_staking {
     use super::*;
@@ -82,6 +86,9 @@ pub mod qpl_staking {
         operator_account.unstake_time = 0;
         operator_account.registered_at = Clock::get()?.unix_timestamp;
         operator_account.bump = ctx.bumps.operator_account;
+        operator_account.pending_slash_amount = 0;
+        operator_account.pending_slash_reason = String::new();
+        operator_account.slash_initiated_at = 0;
 
         emit!(OperatorStaked {
             operator_id,
@@ -149,8 +156,9 @@ pub mod qpl_staking {
         Ok(())
     }
 
-    /// Governance slashes an operator's stake for protocol violations.
-    pub fn slash(
+    /// Governance initiates a slash against an operator's stake.
+    /// The slash is subject to a 24-hour dispute window before execution.
+    pub fn initiate_slash(
         ctx: Context<Slash>,
         amount: u64,
         reason: String,
@@ -162,10 +170,50 @@ pub mod qpl_staking {
             QplStakingError::SlashExceedsStake
         );
 
+        let clock = Clock::get()?;
+        
+        // Record pending slash — executes after dispute window
+        operator_account.pending_slash_amount = amount;
+        operator_account.pending_slash_reason = reason.clone();
+        operator_account.slash_initiated_at = clock.unix_timestamp;
+
+        emit!(SlashInitiated {
+            operator_id: operator_account.operator_id,
+            amount,
+            reason,
+            execute_after: clock.unix_timestamp + SLASH_DISPUTE_WINDOW_SECS,
+        });
+
+        Ok(())
+    }
+
+    /// Execute a pending slash after the dispute window has elapsed.
+    /// Can be called by anyone (permissionless execution).
+    pub fn execute_slash(ctx: Context<ExecuteSlash>) -> Result<()> {
+        let operator_account = &mut ctx.accounts.operator_account;
+
+        require!(
+            operator_account.pending_slash_amount > 0,
+            QplStakingError::NoPendingSlash
+        );
+
+        let clock = Clock::get()?;
+        let execute_after = operator_account.slash_initiated_at + SLASH_DISPUTE_WINDOW_SECS;
+        require!(
+            clock.unix_timestamp >= execute_after,
+            QplStakingError::DisputeWindowNotElapsed
+        );
+
+        let amount = operator_account.pending_slash_amount;
         operator_account.staked_amount = operator_account
             .staked_amount
             .checked_sub(amount)
             .ok_or(QplStakingError::SlashExceedsStake)?;
+
+        // Clear pending slash
+        operator_account.pending_slash_amount = 0;
+        operator_account.pending_slash_reason = String::new();
+        operator_account.slash_initiated_at = 0;
 
         // Deactivate if below minimum
         if operator_account.staked_amount < MIN_STAKE_LAMPORTS && operator_account.active {
@@ -187,7 +235,41 @@ pub mod qpl_staking {
         emit!(OperatorSlashed {
             operator_id: operator_account.operator_id,
             amount,
-            reason,
+            reason: ctx.accounts.operator_account.pending_slash_reason.clone(),
+        });
+
+        Ok(())
+    }
+
+    /// Operator disputes a pending slash (e.g., provides evidence of innocence).
+    /// Cancels the pending slash. Governance can re-initiate with new evidence.
+    pub fn dispute_slash(ctx: Context<DisputeSlash>) -> Result<()> {
+        let operator_account = &mut ctx.accounts.operator_account;
+
+        require!(
+            operator_account.pending_slash_amount > 0,
+            QplStakingError::NoPendingSlash
+        );
+
+        let clock = Clock::get()?;
+        let execute_after = operator_account.slash_initiated_at + SLASH_DISPUTE_WINDOW_SECS;
+        
+        // Can only dispute during the window
+        require!(
+            clock.unix_timestamp < execute_after,
+            QplStakingError::DisputeWindowNotElapsed
+        );
+
+        let amount = operator_account.pending_slash_amount;
+        
+        // Clear pending slash
+        operator_account.pending_slash_amount = 0;
+        operator_account.pending_slash_reason = String::new();
+        operator_account.slash_initiated_at = 0;
+
+        emit!(SlashDisputed {
+            operator_id: operator_account.operator_id,
+            amount,
         });
 
         Ok(())
@@ -339,6 +421,21 @@ pub struct Slash<'info> {
     )]
     pub operator_account: Account<'info, OperatorAccount>,
 
+    #[account(seeds = [b"config"], bump = config.bump)]
+    pub config: Account<'info, StakingConfig>,
+}
+
+#[derive(Accounts)]
+pub struct ExecuteSlash<'info> {
+    /// Anyone can execute a pending slash after the dispute window
+    pub executor: Signer<'info>,
+
+    #[account(
+        mut,
+        constraint = operator_account.pending_slash_amount > 0 @ QplStakingError::NoPendingSlash
+    )]
+    pub operator_account: Account<'info, OperatorAccount>,
+
     #[account(
         mut,
         seeds = [b"vault"],
@@ -352,6 +449,19 @@ pub struct Slash<'info> {
 
     #[account(seeds = [b"config"], bump = config.bump)]
     pub config: Account<'info, StakingConfig>,
+}
+
+#[derive(Accounts)]
+pub struct DisputeSlash<'info> {
+    #[account(mut)]
+    pub operator: Signer<'info>,
+
+    #[account(
+        mut,
+        has_one = authority @ QplStakingError::Unauthorized,
+        constraint = operator.key() == operator_account.authority
+    )]
+    pub operator_account: Account<'info, OperatorAccount>,
 }
 
 #[derive(Accounts)]
@@ -398,11 +508,17 @@ pub struct OperatorAccount {
     pub registered_at: i64,
     /// PDA bump seed
     pub bump: u8,
+    /// Pending slash amount (0 = no pending slash)
+    pub pending_slash_amount: u64,
+    /// Reason for pending slash
+    pub pending_slash_reason: String,
+    /// Timestamp when slash was initiated (for dispute window)
+    pub slash_initiated_at: i64,
 }
 
 impl OperatorAccount {
-    // 8 (discriminator) + 32 + 32 + 8 + (4 + 128) + 4 + 1 + 8 + 8 + 1 = 234
-    pub const SPACE: usize = 8 + 32 + 32 + 8 + (4 + 128) + 4 + 1 + 8 + 8 + 1;
+    // 8 (discriminator) + 32 + 32 + 8 + (4 + 128) + 4 + 1 + 8 + 8 + 1 + 8 + (4 + 256) + 8 = 498
+    pub const SPACE: usize = 8 + 32 + 32 + 8 + (4 + 128) + 4 + 1 + 8 + 8 + 1 + 8 + (4 + 256) + 8;
 }
 
 #[account]
@@ -457,6 +573,20 @@ pub struct OperatorSlashed {
 }
 
 #[event]
+pub struct SlashInitiated {
+    pub operator_id: [u8; 32],
+    pub amount: u64,
+    pub reason: String,
+    pub execute_after: i64,
+}
+
+#[event]
+pub struct SlashDisputed {
+    pub operator_id: [u8; 32],
+    pub amount: u64,
+}
+
+#[event]
 pub struct StakeDeposited {
     pub operator_id: [u8; 32],
     pub amount: u64,
@@ -494,4 +624,8 @@ pub enum QplStakingError {
     InsufficientVaultBalance,
     #[msg("Arithmetic overflow")]
     Overflow,
+    #[msg("No pending slash to execute")]
+    NoPendingSlash,
+    #[msg("Dispute window has not elapsed")]
+    DisputeWindowNotElapsed,
 }

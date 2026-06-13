@@ -188,17 +188,12 @@ pub fn verify_auth(
 
     // Step 5: ML-DSA-65 verify via qpl-crypto.
     //
-    // We branch on whether the configured public key parses as an ML-DSA-65
-    // key (real production) or is a placeholder fixture (32-byte random).
-    // For placeholder operators the dev path performs a HMAC-style
-    // SHA-256 check over the same pre-image so that signing/verification
-    // remain symmetric until the qpl-crypto integration lands here.
-    //
-    // TODO(QPL-AUTH-1): once `OperatorIdentity::sign` delegates to
-    // `qpl_crypto::ml_dsa::generate_keypair().sign(...)`, drop the
-    // dev-fallback branch and require real ML-DSA verification.
+    // Production path: require real ML-DSA-65 public key (≥1952 bytes).
+    // Debug/test path: allow placeholder 32-byte keys with SHA-256 dev signature.
+    // The dev fallback is compiled out in release builds to prevent any
+    // possibility of bypassing quantum-secure authentication in production.
     if pubkey_bytes.len() >= 1952 {
-        // Looks like a real ML-DSA-65 public key.
+        // Real ML-DSA-65 public key — production path.
         let pk = qpl_crypto::ml_dsa::MlDsaPublicKey::from_bytes(&pubkey_bytes)
             .map_err(|_| AuthFailure::BadPublicKey)?;
         let sig_bytes = hex::decode(&auth.signature).map_err(|_| AuthFailure::BadSignatureHex)?;
@@ -210,12 +205,20 @@ pub fn verify_auth(
             return Err(AuthFailure::SignatureRejected);
         }
     } else {
-        // Dev / placeholder path — symmetric SHA-256(pubkey || preimage).
-        // This MUST match the client-side stub in tests.
-        let sig_bytes = hex::decode(&auth.signature).map_err(|_| AuthFailure::BadSignatureHex)?;
-        let expected = dev_signature(&pubkey_bytes, &preimage);
-        if sig_bytes != expected {
-            return Err(AuthFailure::SignatureRejected);
+        // Dev / test path — only available in debug builds.
+        #[cfg(any(test, debug_assertions))]
+        {
+            let sig_bytes =
+                hex::decode(&auth.signature).map_err(|_| AuthFailure::BadSignatureHex)?;
+            let expected = dev_signature(&pubkey_bytes, &preimage);
+            if sig_bytes != expected {
+                return Err(AuthFailure::SignatureRejected);
+            }
+        }
+        #[cfg(not(any(test, debug_assertions)))]
+        {
+            let _ = &preimage; // suppress unused warning
+            return Err(AuthFailure::BadPublicKey);
         }
     }
 
@@ -223,11 +226,11 @@ pub fn verify_auth(
 }
 
 /// Dev / test signature stub — SHA-256(pubkey || preimage) — used only
-/// when a non-ML-DSA placeholder pubkey is configured (e.g. the 32-byte
-/// random buffers produced by [`crate::identity::OperatorIdentity::generate`]).
+/// in debug/test builds when a non-ML-DSA placeholder pubkey is configured.
 ///
-/// **NEVER ship to production.** Real operators MUST register an
-/// ML-DSA-65 public key (≥1952 bytes) in `authorized_operators`.
+/// **Compiled out in release builds.** Production operators MUST register
+/// an ML-DSA-65 public key (≥1952 bytes) in `authorized_operators`.
+#[cfg(any(test, debug_assertions))]
 pub fn dev_signature(pubkey: &[u8], preimage: &[u8]) -> Vec<u8> {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
