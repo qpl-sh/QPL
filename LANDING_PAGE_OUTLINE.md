@@ -112,11 +112,11 @@ Per-operation network fee: $0.025/signature · $1.00-$2.50/STARK proof. 40% coor
 
 ## Section 6: For Operators (Scarcity + FOMO)
 
-**Section Title:** Genesis Operator Program — 50 Seats
+**Section Title:** Genesis Operator Program — 15 Seats
 
 **Copy direction:**
 
-> The QPL operator network is intentionally constrained at launch. The Genesis cohort is limited to **50 operator slots**. Once full, the next cohort waits.
+> The QPL operator network is intentionally constrained at launch. The Genesis cohort is limited to **15 operator slots**. Once full, the next cohort waits.
 
 > Operators are independent service providers who run quantum-resistant infrastructure and earn service fees for computational work performed. You provide the HSM, the compute, and the uptime. The network routes requests to you.
 
@@ -133,7 +133,7 @@ Per-operation network fee: $0.025/signature · $1.00-$2.50/STARK proof. 40% coor
 - Achievement-based unlocks: testnet participation and uptime milestones unlock mainnet priority
 
 **Live counter (if available):**  
-`[XX / 50 Genesis slots filled]`
+`[XX / 15 Genesis slots filled]`
 
 **CTA:** `[Apply for Genesis Slot →]`
 
@@ -238,4 +238,4 @@ Operators       security      STARK proofs   availability
 - [x] Operator fees framed as "compensation for computational work" — not returns
 - [x] Explicit compliance disclaimer in operator section and footer
 - [x] No airdrops, token incentives, or liquidity mining mentioned
-- [x] Scarcity claims (50 Genesis slots) reflect actual protocol constraints
+- [x] Scarcity claims (15 Genesis slots) reflect actual protocol constraints

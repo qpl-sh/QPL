@@ -4,7 +4,7 @@
 
 ## Tagline
 
-**Quantum-proof DeFi signing. 50 genesis seats. No second chance.**
+**Quantum-proof DeFi signing. 15 genesis seats. No second chance.**
 
 ---
 
@@ -62,7 +62,7 @@ QPL is not a wrapper or a whitepaper promise. The protocol is built, tested, and
 
 ### Genesis Operator Program
 
-**50 seats. Permanent. Non-transferable.**
+**15 seats. Permanent. Non-transferable.**
 
 The Genesis Operator cohort represents the founding validator set of the QPL network. This is not a rewards program — it is a permanent, soulbound designation that marks the operators who stood up quantum-safe infrastructure before the market understood the threat.
 
@@ -73,7 +73,7 @@ Genesis Operators receive:
 - **Priority coordination rights** — Genesis operators are first in quorum selection during the network's critical early months
 - **Invite-only expansion authority** — only Genesis operators can nominate the next cohort
 
-There will never be another Genesis round. The 50 seats exist once.
+There will never be another Genesis round. The 15 seats exist once.
 
 ---
 

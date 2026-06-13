@@ -208,7 +208,7 @@ Break-even: $1,450 / $0.021 = 69,048 requests/month = ~2,302 requests/day
 
 *Revenue calculated as: requests/operator/day × $0.021 blended × 30.44 days/month*
 
-**Key finding:** At Genesis launch (10 operators, 10K-50K daily requests), operators break even at ~2,300 requests/operator/day. With 50,000 daily requests across 10 operators (5,000 each), operators earn $3,150/month — **2.2× their costs**. This is a viable economic model from launch.
+**Key finding:** At Genesis launch (15 operators, 10K-50K daily requests), operators break even at ~2,048 requests/operator/day. With 50,000 daily requests across 15 operators (~3,333 each), operators earn $2,100/month — **1.6× their costs**. This is a viable economic model from launch.
 
 ### 3.3 Proving Revenue Changes the Math Dramatically
 
@@ -291,11 +291,11 @@ Solana transaction: ~5,000 compute units = ~$0.0005-0.001
 
 ### ISSUE 3: Operator Bootstrapping Economics (RESOLVED by fee increase)
 
-**Previous problem:** At Genesis launch volumes (50 operators, 20K requests/day), operators earned ~$12/month against $150/month in costs.
+**Previous problem:** At Genesis launch volumes (50 operators, 20K requests/day), operators earned ~$12/month against $1,303/month in costs.
 
-**Resolution:** With the revised fee schedule ($0.025/signature), operators at 50K requests/day across 10 operators earn $3,150/month — 2.2× costs. The bootstrapping problem is resolved.
+**Resolution:** With the revised fee schedule ($0.025/signature) and curated genesis set of 15 operators, at 50K requests/day across 15 operators, each earns $2,100/month — 1.6× costs. The bootstrapping problem is resolved.
 
-**Remaining risk:** If operator count grows faster than volume (e.g., 50 operators at 10K requests/day), per-operator revenue drops to $630/month against $1,450 costs. Governance should manage operator capacity targets.
+**Remaining risk:** If operator count grows faster than volume (e.g., 50 operators at 10K requests/day), per-operator revenue drops to $630/month against $1,303 costs. Governance should manage operator capacity targets and expansion pace.
 
 ---
 

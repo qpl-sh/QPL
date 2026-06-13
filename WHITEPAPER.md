@@ -818,7 +818,7 @@ With coordinator rotation (each operator coordinates 20% of requests), blended d
 Blended revenue = 0.80 × $187.50 + 0.20 × $300.00 = $210.00/day
 ```
 
-At 10,000 sigs/day, operators earn $210/day against $48/day costs — **4.4× profitable**. Break-even occurs at just **2,286 sigs/day**, making the economics viable even at early adoption volumes.
+At 10,000 sigs/day, operators earn $210/day against $43/day costs — **4.9× profitable**. Break-even occurs at just **2,048 sigs/day**, making the economics viable even at early adoption volumes.
 
 ### 8.7 Operator Economics: Bootstrap Strategy and Revenue Scaling
 
@@ -826,31 +826,32 @@ At 10,000 sigs/day, operators earn $210/day against $48/day costs — **4.4× pr
 
 **Minimum Viable Volume:**
 
-For an operator to break even at $48/day (see Section 8.6), they need:
+For an operator to break even at $43/day (see Section 8.6), they need:
 ```
-Breakeven volume = $48/day ÷ $0.021/sig (blended participant+coordinator) = 2,286 sigs/day
+Breakeven volume = $43/day ÷ $0.021/sig (blended participant+coordinator) = 2,048 sigs/day
 ```
 
-With 10 operators sharing load, the network needs **22,860 total signatures/day** to sustain all operators. This is achievable with a single anchor tenant bridge.
+With 15 operators sharing load, the network needs **30,720 total signatures/day** to sustain all operators. This is achievable with 2-3 anchor tenant bridges.
 
-**Phase 1: Subsidized Launch (Months 1-6)**
+**Phase 1: Curated Genesis (Months 1-6)**
 
-During initial network launch, the protocol treasury actively subsidizes operator rewards:
-- **Operator incentives pool:** Treasury allocates SOL rewards to early operators, ensuring minimum $100/day revenue per active operator (2× breakeven)
-- **Reduced stake requirement:** Governance temporarily lowers MIN_STAKE to 0.5 SOL during bootstrap
-- **Guaranteed coordinator rotation:** With N active operators, each gets equal coordinator assignment via round-robin
-- **Subsidy source:** 100% of treasury fees + additional SOL from protocol-owned liquidity
+Launch with a small, high-quality genesis set to establish credibility and create FOMO:
+- **Genesis cohort:** 15 curated operator slots (invite-only)
+- **Selection criteria:** Proven infrastructure experience (validators, RPC providers), HSM commitment, geographic diversity, minimum 10 SOL stake, willingness to be public/pseudonymous
+- **Treasury support:** 100% of treasury fees directed to early operators during bootstrap
+- **Guaranteed coordinator rotation:** With 15 active operators, each gets equal coordinator assignment via round-robin
+- **Expansion path:** Genesis operators nominate the next cohort (Phase 2: 25 operators, Phase 3: 40-80+ permissionless)
 
 **Phase 2: Demand Growth (Months 6-18)**
 
 Revenue viability depends on anchor tenants—high-volume protocols requiring continuous signing:
 
-| Anchor Tenant Type | Estimated Volume | Daily Network Revenue | Per-Operator Revenue (10 ops) |
+| Anchor Tenant Type | Estimated Volume | Daily Network Revenue | Per-Operator Revenue (15 ops) |
 |-------------------|------------------|----------------------|-------------------------------|
-| Cross-chain bridge (per withdrawal) | 10,000 sigs/day | $750 | $75/operator |
-| DAO treasury multisig | 2,000 sigs/day | $150 | $15/operator |
-| DeFi protocol (batch settlements) | 1,000 proofs/day | $3,000 | $300/operator |
-| Validator infrastructure | 50,000 attestations/day | $3,750 | $375/operator |
+| Cross-chain bridge (per withdrawal) | 10,000 sigs/day | $750 | $50/operator |
+| DAO treasury multisig | 2,000 sigs/day | $150 | $10/operator |
+| DeFi protocol (batch settlements) | 1,000 proofs/day | $3,000 | $200/operator |
+| Validator infrastructure | 50,000 attestations/day | $3,750 | $250/operator |
 
 **Realistic Scenario (3 anchor tenants):**
 ```
@@ -868,7 +869,7 @@ This exceeds breakeven by 11×, making operator economics highly attractive.
 At scale, STARK proving fees ($1.00-$2.50 per proof) dominate signing revenue:
 ```
 5,000 proofs/day × $1.00 × 3 (quorum) = $15,000/day network revenue
-Split across 20 operators: ~$750/operator/day
+Split across 25 operators: ~$600/operator/day
 ```
 
 **Fee Adjustment Mechanism:** The governance multisig adjusts the fee schedule quarterly based on:
@@ -1265,7 +1266,7 @@ These benchmarks demonstrate that post-quantum cryptographic operations are prac
 
 **Phase 4: Mainnet Launch (Q2 2027)**
 - [ ] Deploy audited programs to Solana mainnet (governance-controlled upgrade)
-- [ ] Onboard 7+ genesis operators (geographically distributed, independent infrastructure)
+- [ ] Onboard 15 genesis operators (curated: proven infrastructure, geographic diversity, HSM-capable)
 - [ ] Integrate with 2+ anchor tenant protocols (bridge, treasury)
 - [ ] Publish incident response playbook (per THREAT_MODEL.md §7.4)
 - [ ] Establish operator reputation system (uptime, request volume, slashing history)
