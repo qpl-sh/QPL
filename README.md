@@ -52,7 +52,7 @@ For end-to-end protocol flows, see [PROTOCOL_FLOWS.md](PROTOCOL_FLOWS.md).
 
 ## Fee Model
 
-Every signing or proving operation incurs a micro-fee (~$0.001), split automatically by the on-chain fee router:
+Every signing or proving operation incurs a transparent per-operation fee (signing ~$0.025, STARK proofs $1.00–$2.50), split automatically by the on-chain fee router:
 
 | Recipient | Share |
 |-----------|-------|
