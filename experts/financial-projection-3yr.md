@@ -48,9 +48,9 @@ QPL generates revenue exclusively from per-operation network fees (signing and p
 | HSM hardware (amortized) | $1,000 | Dedicated HSM or cloud HSM service |
 | Compute (VPS/cloud) | $200 | 4 vCPU, 8GB RAM, NVMe |
 | Bandwidth | $50 | ~1TB/month at scale |
-| SOL stake opportunity cost | $150 | 1 SOL at ~$150, 5% APR foregone |
+| SOL stake opportunity cost | $34 | 10 SOL at ~$68, 5% APR foregone |
 | DevOps/monitoring | $50 | Alerting, log aggregation |
-| **Total** | **$1,450/month** | |
+| **Total** | **$1,303/month** | |
 
 ### 1.4 Protocol Operating Costs (Treasury Burn)
 

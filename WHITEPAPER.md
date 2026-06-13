@@ -113,7 +113,7 @@ The NIST Post-Quantum Cryptography Standardization process (2016-2024) evaluated
 
 **TA-C (Malicious Coordinator):** Byzantine coordination node. Capabilities: Selective message routing, round stalling, false timeout declarations. Constraints: Bounded by per-operator round caps (1,024) and global round cap (65,536); 5-minute max round age with automatic cleanup.
 
-**TA-E (Economic Attacker):** Actor exploiting protocol economic mechanisms. Capabilities: Smart contract interaction, MEV strategies, Sybil operator registration. Constraints: MIN_FEE_LAMPORTS (6,667 lamports ≈ $0.001) prevents dust; MIN_STAKE (1 SOL) raises Sybil cost; 7-day unbonding limits rapid withdrawal.
+**TA-E (Economic Attacker):** Actor exploiting protocol economic mechanisms. Capabilities: Smart contract interaction, MEV strategies, Sybil operator registration. Constraints: MIN_FEE_LAMPORTS (166,667 lamports ≈ $0.025) prevents dust; MIN_STAKE (10 SOL ≈ $680) raises Sybil cost; 7-day unbonding limits rapid withdrawal.
 
 ---
 
@@ -426,7 +426,7 @@ Operators transition through a state machine:
 
 An operator joins the network through:
 
-1. **Stake Deposit:** Call `QPLStaking.stake(operatorId, endpoint, servicesBitmask)` with at least 1 SOL. The `operatorId` is derived from the operator's ML-DSA public key. The `servicesBitmask` declares supported services (bit 1 = Signing, bit 2 = Proving).
+1. **Stake Deposit:** Call `QPLStaking.stake(operatorId, endpoint, servicesBitmask)` with at least 10 SOL. The `operatorId` is derived from the operator's ML-DSA public key. The `servicesBitmask` declares supported services (bit 1 = Signing, bit 2 = Proving).
 
 2. **Endpoint Registration:** The staking transaction includes the operator's network endpoint (IP:port or DNS), stored in the QPLRegistry for client discovery.
 
@@ -809,9 +809,9 @@ Daily revenue = 10,000 × $0.030 = $300.00
 |----------------|--------------|------------------|
 | HSM hardware (amortized) | $1,000 | $33 |
 | Cloud VPS | $200 | $7 |
-| SOL stake opportunity cost | $150 (1 SOL @ $150) | $5 |
+| SOL stake opportunity cost | $3 (10 SOL @ $68, 5% APR foregone) | $0.09 |
 | Bandwidth + ops | $100 | $3 |
-| **Total** | **$1,450** | **$48/day** |
+| **Total** | **$1,303** | **$43/day** |
 
 With coordinator rotation (each operator coordinates 20% of requests), blended daily revenue is:
 ```
@@ -929,7 +929,7 @@ Manages operator collateral and lifecycle. The program is built around four PDA 
 
 - **Configuration Bootstrap:** `initialize_config(treasury)` and `initialize_vault()` create the singleton governance config and the lamport-holding vault PDA. Both must run before any operator may stake.
 
-- **Minimum Collateral:** 1 SOL (`MIN_STAKE = 1_000_000_000 lamports`)
+- **Minimum Collateral:** 10 SOL (`MIN_STAKE = 10_000_000_000 lamports`)
 
 - **Registration:** `stake(operator_id, endpoint, services_bitmask)` — transfers SOL into the `StakeVault` PDA and registers the operator as active
 
@@ -943,7 +943,7 @@ Manages operator collateral and lifecycle. The program is built around four PDA 
 
 **Events:** `ConfigInitialized`, `VaultInitialized`, `Staked`, `StakeDeposited`, `UnstakeInitiated`, `Withdrawn`, `Slashed` — all emitted via Anchor `emit!` for off-chain indexing.
 
-**Collateral Rationale:** The 1 SOL minimum collateral serves as a Sybil resistance mechanism and ensures operators have economic skin-in-the-game. It is not an investment—it is a security deposit that operators may forfeit if they violate protocol rules.
+**Collateral Rationale:** The 10 SOL minimum collateral (~$680 at $68/SOL) serves as a Sybil resistance mechanism and ensures operators have meaningful economic skin-in-the-game. At typical operator revenue of ~$210/day, 10 SOL represents ~3.2 days of revenue at risk — enough to deter casual misconduct while remaining accessible. It is not an investment—it is a security deposit that operators may forfeit if they violate protocol rules. For high-value use cases (bridges, large treasuries), governance may increase the minimum to 25-50 SOL.
 
 **Why Solana:** At ~$0.00025 per transaction, Solana's fee structure supports QPL's micro-fee model ($0.001 per signature). Ethereum L1 gas costs ($0.50-$5.00 per transaction) exceed the QPL signing fee by 500-5000×, making per-operation settlement economically impossible on Ethereum.
 
@@ -1030,7 +1030,7 @@ For a t-of-n threshold scheme:
 | 3-of-5 | 2                     | 2                 |
 | 5-of-7 | 2                     | 2                 |
 
-A rational adversary would need to stake 1 SOL per compromised operator node and risk slashing of all stake upon detection.
+A rational adversary would need to stake 10 SOL per compromised operator node and risk slashing of all stake upon detection.
 
 ### 10.3 Slashing Conditions
 
@@ -1071,7 +1071,7 @@ Per Section 3.6, QPL's signing layer is algorithmically agile. The HSM model dif
 
 **Eclipse Attacks:** Mitigated by on-chain registry—clients discover operators via QPLRegistry program, not peer gossip. An attacker cannot isolate a client from the legitimate operator set.
 
-**Sybil Resistance:** The 1 SOL minimum collateral per operator makes Sybil attacks economically costly. Controlling a majority of a 5-node quorum requires staking 3+ SOL and operating 3+ distinct infrastructure nodes.
+**Sybil Resistance:** The 10 SOL minimum collateral per operator (~$680) makes Sybil attacks economically meaningful. Controlling a majority of a 5-node quorum requires staking 30+ SOL (~$2,040) and operating 3+ distinct infrastructure nodes with separate HSMs. For high-value deployments, governance may increase the minimum to 25-50 SOL per operator.
 
 **Denial of Service:** Fee-based rate limiting ensures that each request has an associated cost. Operators may additionally implement per-client rate limits. The decentralized topology ensures no single point of failure.
 

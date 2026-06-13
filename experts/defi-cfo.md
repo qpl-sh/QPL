@@ -39,10 +39,10 @@ All fees in USD micro-units (1 unit = $0.000001):
 - Competitive positioning: Fireblocks Essentials $699/mo + 0.20% overage; Enterprise $18K-100K+/year. QPL is cheaper at low volume (<5K sigs/day) but can exceed Fireblocks at very high volume. The quantum-safe premium and decentralization justify the spread for target use cases.
 
 **Operator Break-Even:**
-- Operator daily cost: ~$48/day (HSM $33 + VPS $7 + stake $5 + ops $3)
+- Operator daily cost: ~$43/day (HSM $33 + VPS $7 + stake $0.09 + ops $3)
 - Blended per-request revenue (with 20% coordinator rotation): ~$0.021/sig
-- Break-even volume: ~2,286 sigs/day per operator
-- Profitable at 5,000+ sigs/day ($105/day, 54% margin)
+- Break-even volume: ~2,048 sigs/day per operator
+- Profitable at 5,000+ sigs/day ($105/day, 59% margin)
 
 **Fee Sensitivity Risk:**
 - At 10K sigs/day, a protocol pays $750/day ($273K/year) — exceeding Fireblocks Enterprise pricing. High-volume protocols may negotiate lower fees or run their own operator nodes to offset costs.

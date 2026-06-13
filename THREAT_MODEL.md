@@ -48,7 +48,7 @@
 │                              ▼                                              │
 │  ┌─────────────────┐  ┌────────────────┐  ┌────────────────────────────┐  │
 │  │  qpl-staking    │  │ qpl-fee-router │  │  qpl-registry              │  │
-│  │  (1 SOL min,    │  │ (40/50/10 split│  │  (PDA-based operator       │  │
+│  │  (10 SOL min,   │  │ (40/50/10 split│  │  (PDA-based operator       │  │
 │  │   7d unbond,    │  │  min fee 6667  │  │   accounts, services       │  │
 │  │   slashing)     │  │  lamports)     │  │   bitmask)                 │  │
 │  └─────────────────┘  └────────────────┘  └────────────────────────────┘  │
@@ -114,7 +114,7 @@
 - **Profile:** Actor exploiting protocol economic mechanisms for profit extraction
 - **Capabilities:** Smart contract interaction, MEV strategies, Sybil operator registration
 - **Motivation:** Fee extraction via dust attacks, griefing via mass slashing proposals, stake lockup manipulation
-- **Constraints:** MIN_FEE_LAMPORTS (6,667 lamports ≈ $0.001) prevents dust; MIN_STAKE (1 SOL) raises Sybil cost; 7-day unbonding limits rapid withdrawal
+- **Constraints:** MIN_FEE_LAMPORTS (166,667 lamports ≈ $0.025) prevents dust; MIN_STAKE (10 SOL ≈ $680) raises Sybil cost; 7-day unbonding limits rapid withdrawal
 
 ### 2.6 Supply Chain Attacker (TA-S)
 
@@ -160,7 +160,7 @@
 |----------|--------|
 | **Entry points** | `stake`, `initiate_unstake`, `withdraw`, `slash`, `deposit_stake` instructions |
 | **Potential impact** | Griefing (unjust slashing), stake lockup attacks, draining vault |
-| **Current mitigations** | 1 SOL minimum stake; 7-day unbonding period; `has_one` authority checks; governance-only slashing; checked arithmetic on all lamport transfers; auto-deactivation when stake drops below minimum |
+| **Current mitigations** | 10 SOL minimum stake (~$680); 7-day unbonding period; `has_one` authority checks; governance-only slashing; checked arithmetic on all lamport transfers; auto-deactivation when stake drops below minimum |
 | **Residual risk** | Governance key compromise enables arbitrary slashing; no on-chain dispute mechanism for contested slashes; no progressive slashing (full amount or nothing) |
 
 ### 3.5 gRPC Endpoints

@@ -69,12 +69,12 @@ Save the identity file and configure qpl-node.toml with the path.
 
 ## Step 3: Stake SOL
 
-Operators must stake a minimum of **1 SOL** as a security deposit. This collateral ensures honest behavior — operators who violate protocol rules (downtime, malformed responses) can be slashed.
+Operators must stake a minimum of **10 SOL** (~$680 at $68/SOL) as a security deposit. This collateral ensures honest behavior — operators who violate protocol rules (downtime, malformed responses) can be slashed.
 
 ### Using Solana CLI
 
 ```bash
-# Ensure you have at least 1.1 SOL (1 SOL stake + fees)
+# Ensure you have at least 11 SOL (10 SOL stake + fees)
 solana balance
 
 # Transfer to the staking program
@@ -85,7 +85,7 @@ solana balance
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| Minimum stake | 1 SOL ($150 at current prices) | Security deposit |
+| Minimum stake | 10 SOL (~$680 at $68/SOL) | Security deposit |
 | Unbonding period | 7 days | After initiating unstake |
 | Slashing | Governance-controlled | For protocol violations |
 
@@ -257,10 +257,10 @@ Operators earn service fees for computational work performed:
 
 | Metric | Value |
 |--------|-------|
-| Daily operating cost | ~$48/day |
+| Daily operating cost | ~$43/day |
 | Blended revenue per signature | ~$0.021 (with 20% coordinator rotation) |
-| Break-even volume | ~2,286 signatures/day |
-| Profitable at 5,000+ sigs/day | ~$105/day (54% margin) |
+| Break-even volume | ~2,048 signatures/day |
+| Profitable at 5,000+ sigs/day | ~$105/day (59% margin) |
 
 ### Cost Structure
 
@@ -268,9 +268,9 @@ Operators earn service fees for computational work performed:
 |------|---------|
 | HSM (cloud or physical) | $1,000 |
 | VPS / bare metal | $200 |
-| SOL stake opportunity cost | $150 |
+| SOL stake opportunity cost | $3 |
 | DevOps / monitoring | $100 |
-| **Total** | **~$1,450/month** |
+| **Total** | **~$1,303/month** |
 
 ---
 

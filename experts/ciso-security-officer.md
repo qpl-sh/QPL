@@ -106,7 +106,7 @@ Before shipping, you verify:
 - [x] Slashed operators can recover remaining funds
 - [x] No private key ever exists in any single location
 - [x] HSM documentation accurately describes security boundary (algorithmic agility — WHITEPAPER §3.6, §10.5)
-- [x] Operator registration requires minimum stake (1 SOL)
+- [x] Operator registration requires minimum stake (10 SOL)
 - [x] 7-day unbonding prevents flash-stake governance attacks
 - [x] `StakingConfig` and `StakeVault` PDAs initialized at deployment (CISO #6)
 - [x] `withdraw` and `slash` use checked arithmetic (CISO #7)

@@ -55,7 +55,7 @@ describe("qpl-staking", () => {
     expect(vault.bump).to.be.a("number");
   });
 
-  it("Rejects stake below minimum (1 SOL)", async () => {
+  it("Rejects stake below minimum (10 SOL)", async () => {
     const operator = anchor.web3.Keypair.generate();
     const operatorId = new Uint8Array(32).fill(1);
 
@@ -78,7 +78,7 @@ describe("qpl-staking", () => {
 
     try {
       await program.methods
-        .stake(operatorId, "http://localhost:9000", 0x02, 500_000_000) // 0.5 SOL < 1 SOL min
+        .stake(operatorId, "http://localhost:9000", 0x02, 5_000_000_000) // 5 SOL < 10 SOL min
         .accounts({
           operator: operator.publicKey,
           operatorAccount: operatorPda,
@@ -93,14 +93,14 @@ describe("qpl-staking", () => {
     }
   });
 
-  it("Stakes 1 SOL successfully", async () => {
+  it("Stakes 10 SOL successfully", async () => {
     const operator = anchor.web3.Keypair.generate();
     const operatorId = new Uint8Array(32).fill(2);
 
-    // Airdrop 2 SOL
+    // Airdrop 15 SOL
     const sig = await provider.connection.requestAirdrop(
       operator.publicKey,
-      2 * LAMPORTS_PER_SOL
+      15 * LAMPORTS_PER_SOL
     );
     await provider.connection.confirmTransaction(sig);
 
@@ -115,7 +115,7 @@ describe("qpl-staking", () => {
     );
 
     await program.methods
-      .stake(operatorId, "http://localhost:9000", 0x02, LAMPORTS_PER_SOL)
+      .stake(operatorId, "http://localhost:9000", 0x02, 10 * LAMPORTS_PER_SOL)
       .accounts({
         operator: operator.publicKey,
         operatorAccount: operatorPda,
@@ -126,7 +126,7 @@ describe("qpl-staking", () => {
       .rpc();
 
     const opAccount = await program.account.operatorAccount.fetch(operatorPda);
-    expect(opAccount.stakedAmount.toNumber()).to.equal(LAMPORTS_PER_SOL);
+    expect(opAccount.stakedAmount.toNumber()).to.equal(10 * LAMPORTS_PER_SOL);
     expect(opAccount.active).to.be.true;
     expect(opAccount.endpoint).to.equal("http://localhost:9000");
   });

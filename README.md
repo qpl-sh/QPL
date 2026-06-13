@@ -155,7 +155,7 @@ Stake ──► Join ──► Active ──► Drain ──► Exit
                      └── Slash ───────────┘
 ```
 
-1. **Stake** — Deposit minimum 1 SOL to `QPLStaking` program
+1. **Stake** — Deposit minimum 10 SOL to `QPLStaking` program
 2. **Join** — Register endpoint and supported services in `QPLRegistry`
 3. **Active** — Serve signing/proving requests, earn fees
 4. **Drain** — Signal intent to leave, stop accepting new requests

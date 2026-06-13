@@ -2,8 +2,10 @@ use anchor_lang::prelude::*;
 
 declare_id!("QPLStk1111111111111111111111111111111111111");
 
-/// Minimum stake: 1 SOL (in lamports)
-pub const MIN_STAKE_LAMPORTS: u64 = 1_000_000_000;
+/// Minimum stake: 10 SOL (in lamports) — ~$680 at $68/SOL
+/// Provides meaningful Sybil resistance and skin-in-the-game for operators.
+/// At 10K sigs/day revenue (~$210/day), 10 SOL ≈ 3.2 days of revenue at risk.
+pub const MIN_STAKE_LAMPORTS: u64 = 10_000_000_000;
 
 /// Unbonding period: 7 days in seconds
 pub const UNBOND_PERIOD_SECS: i64 = 7 * 24 * 3600;
@@ -466,7 +468,7 @@ pub struct StakeDeposited {
 
 #[error_code]
 pub enum QplStakingError {
-    #[msg("Insufficient stake: minimum 1 SOL required")]
+    #[msg("Insufficient stake: minimum 10 SOL required")]
     InsufficientStake,
     #[msg("Must support at least one service")]
     NoServicesSelected,

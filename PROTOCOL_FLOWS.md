@@ -171,7 +171,7 @@ sequenceDiagram
 stateDiagram-v2
     [*] --> Unregistered
 
-    Unregistered --> Staked: deposit ≥ 1 SOL<br/>QPLStaking::stake
+    Unregistered --> Staked: deposit ≥ 10 SOL<br/>QPLStaking::stake
     Staked --> Joined: register endpoint<br/>QPLRegistry::join
     Joined --> Active: heartbeat OK<br/>quorum eligible
     Active --> Active: serve sign / prove<br/>earn fees

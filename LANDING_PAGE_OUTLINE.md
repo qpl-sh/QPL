@@ -123,7 +123,7 @@ Per-operation network fee: $0.025/signature · $1.00-$2.50/STARK proof. 40% coor
 **What you need:**
 - Dedicated HSM (PKCS#11 compatible)
 - VPS with <50ms latency to Solana validators
-- 1 SOL security deposit (collateral for honest behavior)
+- 10 SOL security deposit (~$680, collateral for honest behavior)
 - 99.5% uptime commitment
 
 **What you get:**
