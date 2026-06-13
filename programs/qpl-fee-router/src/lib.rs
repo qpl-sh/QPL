@@ -15,8 +15,8 @@ pub const COORDINATOR_SHARE_PCT: u8 = 40;
 pub const PARTICIPANT_SHARE_PCT: u8 = 50;
 pub const TREASURY_SHARE_PCT: u8 = 10;
 
-/// Minimum fee to prevent dust attacks (in lamports, ~$0.001 at $150/SOL)
-pub const MIN_FEE_LAMPORTS: u64 = 6_667; // ~$0.001
+/// Minimum fee to prevent dust attacks (in lamports, ~$0.025 at $150/SOL)
+pub const MIN_FEE_LAMPORTS: u64 = 166_667; // ~$0.025
 
 #[program]
 pub mod qpl_fee_router {

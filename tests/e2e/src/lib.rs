@@ -14,9 +14,9 @@ fn test_fee_estimation_pipeline() {
 
     let estimate = calc.estimate(req_id, &FeeOperation::Sign, Some(quorum), Urgency::Standard);
 
-    // Base signing fee = $0.001 * 3 operators * 1.0x urgency = $0.003
-    assert_eq!(estimate.base_fee, 1_000);
-    assert_eq!(estimate.total_fee, 3_000);
+    // Base signing fee = $0.025 * 3 operators * 1.0x urgency = $0.075
+    assert_eq!(estimate.base_fee, 25_000);
+    assert_eq!(estimate.total_fee, 75_000);
     assert_eq!(estimate.operator_count, 3);
 }
 

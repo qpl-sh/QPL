@@ -20,16 +20,16 @@ pub const PARTICIPANT_SHARE_PCT: u8 = 50;
 pub const TREASURY_SHARE_PCT: u8 = 10;
 
 /// Per-operation base fees in USD micro-units (1 unit = $0.000001).
-/// Example: 1_000 = $0.001
+/// Example: 25_000 = $0.025
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeeSchedule {
-    /// Fee per threshold signature ($0.001)
+    /// Fee per threshold signature ($0.025)
     pub signing_base: u64,
-    /// Fee per STARK proof generation — small batch ($0.05)
+    /// Fee per STARK proof generation — small batch ($1.00)
     pub proving_small_base: u64,
-    /// Fee per STARK proof generation — large batch ($0.10)
+    /// Fee per STARK proof generation — large batch ($2.50)
     pub proving_large_base: u64,
-    /// Fee per proof verification ($0.001)
+    /// Fee per proof verification ($0.025)
     pub verification_base: u64,
     /// Batch size threshold for proving (transactions).
     pub proving_large_threshold: u32,
@@ -40,12 +40,12 @@ pub struct FeeSchedule {
 impl Default for FeeSchedule {
     fn default() -> Self {
         Self {
-            signing_base: 1_000,           // $0.001
-            proving_small_base: 50_000,    // $0.05
-            proving_large_base: 100_000,   // $0.10
-            verification_base: 1_000,      // $0.001
+            signing_base: 25_000,          // $0.025
+            proving_small_base: 1_000_000, // $1.00
+            proving_large_base: 2_500_000, // $2.50
+            verification_base: 25_000,     // $0.025
             proving_large_threshold: 100,
-            min_total_fee: 1_000,          // $0.001 minimum
+            min_total_fee: 25_000,         // $0.025 minimum
         }
     }
 }
@@ -197,8 +197,10 @@ mod tests {
     #[test]
     fn test_default_fee_schedule() {
         let schedule = FeeSchedule::default();
-        assert_eq!(schedule.signing_base, 1_000); // $0.001
-        assert_eq!(schedule.proving_small_base, 50_000); // $0.05
+        assert_eq!(schedule.signing_base, 25_000); // $0.025
+        assert_eq!(schedule.proving_small_base, 1_000_000); // $1.00
+        assert_eq!(schedule.proving_large_base, 2_500_000); // $2.50
+        assert_eq!(schedule.verification_base, 25_000); // $0.025
     }
 
     #[test]
@@ -211,8 +213,8 @@ mod tests {
             Urgency::Standard,
         );
 
-        // base $0.001 * 3 operators * 1.0 urgency = $0.003
-        assert_eq!(estimate.total_fee, 3_000);
+        // base $0.025 * 3 operators * 1.0 urgency = $0.075
+        assert_eq!(estimate.total_fee, 75_000);
         assert_eq!(estimate.operator_count, 3);
     }
 
@@ -226,8 +228,8 @@ mod tests {
             Urgency::Instant,
         );
 
-        // base $0.001 * 3 operators * 2.0 urgency = $0.006
-        assert_eq!(estimate.total_fee, 6_000);
+        // base $0.025 * 3 operators * 2.0 urgency = $0.150
+        assert_eq!(estimate.total_fee, 150_000);
     }
 
     #[test]
@@ -258,8 +260,8 @@ mod tests {
 
     #[test]
     fn test_format_usd() {
-        assert_eq!(FeeCalculator::format_usd(1_000), "$0.001000");
-        assert_eq!(FeeCalculator::format_usd(50_000), "$0.050000");
+        assert_eq!(FeeCalculator::format_usd(25_000), "$0.025000");
         assert_eq!(FeeCalculator::format_usd(1_000_000), "$1.000000");
+        assert_eq!(FeeCalculator::format_usd(2_500_000), "$2.500000");
     }
 }

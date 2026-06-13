@@ -22,10 +22,10 @@ All fees in USD micro-units (1 unit = $0.000001):
 
 | Operation | Base Fee | USD |
 |-----------|----------|-----|
-| Threshold signature | 1,000 | $0.001 |
-| STARK proof (small batch, <=100 tx) | 50,000 | $0.05 |
-| STARK proof (large batch, >100 tx) | 100,000 | $0.10 |
-| Proof verification | 1,000 | $0.001 |
+| Threshold signature | 25,000 | $0.025 |
+| STARK proof (small batch, <=100 tx) | 1,000,000 | $1.00 |
+| STARK proof (large batch, >100 tx) | 2,500,000 | $2.50 |
+| Proof verification | 25,000 | $0.025 |
 
 **Multipliers:**
 - Quorum: multiplied by threshold count (3-of-5 = 3x)
@@ -33,10 +33,26 @@ All fees in USD micro-units (1 unit = $0.000001):
 
 **Distribution:** 40% coordinator, 50% participants, 10% treasury
 
+**Fee Calibration Rationale:**
+- Threshold signature ($0.025): At $0.075 per 3-of-5 quorum, QPL is priced above centralized alternatives (Fireblocks ~$0.005-0.02/sig at scale, AWS KMS ~$0.0001/sig) but includes quantum resistance, decentralization, and threshold security that neither provides. The premium is justified for high-value operations (bridge withdrawals, treasury multisig) but may face resistance for high-volume low-value signing. Governance should monitor volume elasticity.
+- STARK proof ($1.00-$2.50): Within the emerging ZK proving market ($0.50-5.00/proof depending on circuit complexity). Well-positioned for privacy-preserving settlement and computation integrity use cases.
+- Competitive positioning: Fireblocks Essentials $699/mo + 0.20% overage; Enterprise $18K-100K+/year. QPL is cheaper at low volume (<5K sigs/day) but can exceed Fireblocks at very high volume. The quantum-safe premium and decentralization justify the spread for target use cases.
+
+**Operator Break-Even:**
+- Operator daily cost: ~$48/day (HSM $33 + VPS $7 + stake $5 + ops $3)
+- Blended per-request revenue (with 20% coordinator rotation): ~$0.021/sig
+- Break-even volume: ~2,286 sigs/day per operator
+- Profitable at 5,000+ sigs/day ($105/day, 54% margin)
+
+**Fee Sensitivity Risk:**
+- At 10K sigs/day, a protocol pays $750/day ($273K/year) — exceeding Fireblocks Enterprise pricing. High-volume protocols may negotiate lower fees or run their own operator nodes to offset costs.
+- The 0.20% Fireblocks overage fee is volume-proportional; QPL's flat fee is more predictable but can be more expensive at very high volumes.
+- Governance should consider volume-based discounts or tiered pricing if fee compression becomes a competitive risk.
+
 ## How You Think
 
 - **Unit economics first.** Every projection starts with: what does one operation cost to serve, and what does one operation earn? If the unit economics don't work at 1 request, they don't work at 1 million.
-- **Bottom-up modeling.** You never project "if we capture X% of the TAM." You project from concrete integration pipelines: "Bridge A processes 50K cross-chain messages/day. At $0.003/signature (3-of-5), that's $150/day in fees, of which $15/day accrues to treasury."
+- **Bottom-up modeling.** You never project "if we capture X% of the TAM." You project from concrete integration pipelines: "Bridge A processes 50K cross-chain messages/day. At $0.075/signature (3-of-5), that's $3,750/day in fees, of which $375/day accrues to treasury."
 - **Scenario-driven.** Every projection has three scenarios: Conservative (only Tier 1 integrations), Base (Tier 1 + Tier 2), Aggressive (all tiers). You never present a single number without confidence bounds.
 - **Cost-aware.** Operator costs are real: compute ($50-200/mo per node), bandwidth, stake opportunity cost (1 ETH locked at current rates), DevOps overhead. You model break-even points for operators honestly.
 - **Howey-safe language.** You NEVER frame projections as "returns on investment" for operators. You frame them as "estimated service fee revenue at projected request volumes." Operators are service providers, not investors.
