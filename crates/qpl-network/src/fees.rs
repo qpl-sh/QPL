@@ -45,7 +45,7 @@ impl Default for FeeSchedule {
             proving_large_base: 2_500_000, // $2.50
             verification_base: 25_000,     // $0.025
             proving_large_threshold: 100,
-            min_total_fee: 25_000,         // $0.025 minimum
+            min_total_fee: 25_000, // $0.025 minimum
         }
     }
 }
@@ -117,9 +117,7 @@ impl FeeCalculator {
         urgency: Urgency,
     ) -> FeeEstimate {
         let base_fee = self.base_fee_for(operation);
-        let quorum_multiplier = quorum
-            .map(|q| q.threshold as f64)
-            .unwrap_or(1.0);
+        let quorum_multiplier = quorum.map(|q| q.threshold as f64).unwrap_or(1.0);
         let urgency_multiplier = urgency.multiplier();
 
         let total = (base_fee as f64 * quorum_multiplier * urgency_multiplier) as u64;
@@ -239,7 +237,7 @@ mod tests {
 
         assert_eq!(split.coordinator_amount, 4_000); // 40%
         assert_eq!(split.treasury_amount, 1_000); // 10%
-        // 50% = 5_000, split between 2 participants
+                                                  // 50% = 5_000, split between 2 participants
         assert_eq!(split.per_participant_amount, 2_500);
         assert_eq!(split.participant_count, 2);
     }

@@ -247,9 +247,9 @@ impl GasEstimates {
     /// - Ethereum mainnet gas costs
     pub fn standard() -> Self {
         Self {
-            base_verification: 350_000,  // ~350K gas for STARK verification
-            per_transaction: 500,         // ~500 gas per tx amortized
-            state_root_update: 20_000,    // ~20K gas for storage update
+            base_verification: 350_000, // ~350K gas for STARK verification
+            per_transaction: 500,       // ~500 gas per tx amortized
+            state_root_update: 20_000,  // ~20K gas for storage update
         }
     }
 
@@ -258,9 +258,9 @@ impl GasEstimates {
     /// Higher security level requires more FRI queries and larger proofs.
     pub fn high_security() -> Self {
         Self {
-            base_verification: 500_000,  // ~500K gas for high-security verification
-            per_transaction: 600,         // ~600 gas per tx amortized
-            state_root_update: 20_000,    // Same storage cost
+            base_verification: 500_000, // ~500K gas for high-security verification
+            per_transaction: 600,       // ~600 gas per tx amortized
+            state_root_update: 20_000,  // Same storage cost
         }
     }
 

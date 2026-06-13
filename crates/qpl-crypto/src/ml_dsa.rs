@@ -105,7 +105,12 @@ impl MlDsaPublicKey {
 
 impl fmt::Debug for MlDsaPublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let hex_prefix: String = self.bytes.iter().take(8).map(|b| format!("{:02x}", b)).collect();
+        let hex_prefix: String = self
+            .bytes
+            .iter()
+            .take(8)
+            .map(|b| format!("{:02x}", b))
+            .collect();
         write!(f, "MlDsaPublicKey({}...)", hex_prefix)
     }
 }
@@ -195,7 +200,12 @@ impl MlDsaSignature {
 
 impl fmt::Debug for MlDsaSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let hex_prefix: String = self.bytes.iter().take(8).map(|b| format!("{:02x}", b)).collect();
+        let hex_prefix: String = self
+            .bytes
+            .iter()
+            .take(8)
+            .map(|b| format!("{:02x}", b))
+            .collect();
         write!(f, "MlDsaSignature({}...)", hex_prefix)
     }
 }
@@ -354,7 +364,10 @@ mod tests {
         let is_valid = verify(keypair.public_key(), tampered_message, &signature)
             .expect("Verification should not error");
 
-        assert!(!is_valid, "Signature should be invalid for tampered message");
+        assert!(
+            !is_valid,
+            "Signature should be invalid for tampered message"
+        );
     }
 
     #[test]
@@ -367,7 +380,10 @@ mod tests {
         let is_valid = verify(keypair2.public_key(), message, &signature)
             .expect("Verification should not error");
 
-        assert!(!is_valid, "Signature should be invalid with wrong public key");
+        assert!(
+            !is_valid,
+            "Signature should be invalid with wrong public key"
+        );
     }
 
     #[test]
@@ -421,8 +437,8 @@ mod tests {
 
         // Serialize and deserialize the secret key
         let sk_bytes = keypair.secret_key.as_bytes().to_vec();
-        let restored_sk =
-            MlDsaSecretKey::from_bytes(&sk_bytes).expect("Secret key deserialization should succeed");
+        let restored_sk = MlDsaSecretKey::from_bytes(&sk_bytes)
+            .expect("Secret key deserialization should succeed");
 
         // Create a new keypair-like setup to test signing with restored key
         let _pk = mldsa65::PublicKey::from_bytes(keypair.public_key().as_bytes())
@@ -443,7 +459,10 @@ mod tests {
             .expect("Restored verification should not error");
 
         assert!(original_valid, "Original signature should be valid");
-        assert!(restored_valid, "Signature from restored key should be valid");
+        assert!(
+            restored_valid,
+            "Signature from restored key should be valid"
+        );
     }
 
     #[test]

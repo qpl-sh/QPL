@@ -165,19 +165,22 @@ pub fn validate_trace(
     if trace.trace_columns[columns::SENDER_BALANCE][0] != BaseElement::from(initial_sender) {
         return Err(format!(
             "Initial sender balance mismatch: expected {}, got {:?}",
-            initial_sender, trace.trace_columns[columns::SENDER_BALANCE][0]
+            initial_sender,
+            trace.trace_columns[columns::SENDER_BALANCE][0]
         ));
     }
     if trace.trace_columns[columns::RECEIVER_BALANCE][0] != BaseElement::from(initial_receiver) {
         return Err(format!(
             "Initial receiver balance mismatch: expected {}, got {:?}",
-            initial_receiver, trace.trace_columns[columns::RECEIVER_BALANCE][0]
+            initial_receiver,
+            trace.trace_columns[columns::RECEIVER_BALANCE][0]
         ));
     }
     if trace.trace_columns[columns::NONCE][0] != BaseElement::from(initial_nonce) {
         return Err(format!(
             "Initial nonce mismatch: expected {}, got {:?}",
-            initial_nonce, trace.trace_columns[columns::NONCE][0]
+            initial_nonce,
+            trace.trace_columns[columns::NONCE][0]
         ));
     }
 
@@ -186,19 +189,22 @@ pub fn validate_trace(
     if trace.trace_columns[columns::SENDER_BALANCE][last] != BaseElement::from(final_sender) {
         return Err(format!(
             "Final sender balance mismatch: expected {}, got {:?}",
-            final_sender, trace.trace_columns[columns::SENDER_BALANCE][last]
+            final_sender,
+            trace.trace_columns[columns::SENDER_BALANCE][last]
         ));
     }
     if trace.trace_columns[columns::RECEIVER_BALANCE][last] != BaseElement::from(final_receiver) {
         return Err(format!(
             "Final receiver balance mismatch: expected {}, got {:?}",
-            final_receiver, trace.trace_columns[columns::RECEIVER_BALANCE][last]
+            final_receiver,
+            trace.trace_columns[columns::RECEIVER_BALANCE][last]
         ));
     }
     if trace.trace_columns[columns::NONCE][last] != BaseElement::from(final_nonce) {
         return Err(format!(
             "Final nonce mismatch: expected {}, got {:?}",
-            final_nonce, trace.trace_columns[columns::NONCE][last]
+            final_nonce,
+            trace.trace_columns[columns::NONCE][last]
         ));
     }
 
@@ -216,7 +222,10 @@ pub fn validate_trace(
 
         // Check validity is binary
         if valid != BaseElement::ZERO && valid != BaseElement::ONE {
-            return Err(format!("Row {}: validity must be 0 or 1, got {:?}", i, valid));
+            return Err(format!(
+                "Row {}: validity must be 0 or 1, got {:?}",
+                i, valid
+            ));
         }
 
         // Check sender balance transition
@@ -256,7 +265,7 @@ mod tests {
     use crate::types::AccountId;
 
     fn make_test_transaction(amount: u64, nonce: u64) -> Transaction {
-        // For trace building tests, we use the legacy new() method 
+        // For trace building tests, we use the legacy new() method
         // since trace building doesn't verify signatures
         Transaction::new(
             AccountId::from_bytes([1u8; 32]),
@@ -347,10 +356,7 @@ mod tests {
     fn test_validate_correct_trace() {
         let sender = AccountBalance::new(1000);
         let receiver = AccountBalance::new(0);
-        let txs = vec![
-            make_test_transaction(100, 0),
-            make_test_transaction(200, 1),
-        ];
+        let txs = vec![make_test_transaction(100, 0), make_test_transaction(200, 1)];
 
         let result = build_settlement_trace(&txs, &sender, &receiver);
 
@@ -364,7 +370,11 @@ mod tests {
             result.final_nonce,
         );
 
-        assert!(validation.is_ok(), "Trace should be valid: {:?}", validation);
+        assert!(
+            validation.is_ok(),
+            "Trace should be valid: {:?}",
+            validation
+        );
     }
 
     #[test]

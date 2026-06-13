@@ -133,7 +133,13 @@ impl TestResults {
     }
 
     /// Records a failed test.
-    pub fn record_failure(&mut self, tc_id: u32, comment: String, expected: String, actual: String) {
+    pub fn record_failure(
+        &mut self,
+        tc_id: u32,
+        comment: String,
+        expected: String,
+        actual: String,
+    ) {
         self.total += 1;
         self.failed += 1;
         self.failures.push(TestFailure {
@@ -329,7 +335,9 @@ pub fn generate_ml_dsa_test_vectors() -> TestVectorFile {
         let keypair = crate::ml_dsa::generate_keypair().expect("Key generation should succeed");
         let original_message = b"Original message";
         let different_message = b"Different message";
-        let signature = keypair.sign(original_message).expect("Signing should succeed");
+        let signature = keypair
+            .sign(original_message)
+            .expect("Signing should succeed");
 
         invalid_tests.push(TestVector {
             tc_id,
@@ -522,8 +530,8 @@ pub fn generate_ml_kem_test_vectors() -> TestVectorFile {
     {
         let keypair1 = crate::ml_kem::generate_keypair().expect("Key generation should succeed");
         let keypair2 = crate::ml_kem::generate_keypair().expect("Key generation should succeed");
-        let (ciphertext, shared_secret) =
-            crate::ml_kem::encapsulate(keypair1.public_key()).expect("Encapsulation should succeed");
+        let (ciphertext, shared_secret) = crate::ml_kem::encapsulate(keypair1.public_key())
+            .expect("Encapsulation should succeed");
 
         invalid_tests.push(TestVector {
             tc_id,
@@ -944,7 +952,11 @@ mod tests {
         assert!(vectors.number_of_tests >= 10);
 
         // Check we have both valid and invalid groups
-        let group_types: Vec<&str> = vectors.test_groups.iter().map(|g| g.group_type.as_str()).collect();
+        let group_types: Vec<&str> = vectors
+            .test_groups
+            .iter()
+            .map(|g| g.group_type.as_str())
+            .collect();
         assert!(group_types.contains(&"valid_signatures"));
         assert!(group_types.contains(&"invalid_signatures"));
     }
@@ -958,7 +970,11 @@ mod tests {
         assert!(vectors.number_of_tests >= 6);
 
         // Check we have both valid and invalid groups
-        let group_types: Vec<&str> = vectors.test_groups.iter().map(|g| g.group_type.as_str()).collect();
+        let group_types: Vec<&str> = vectors
+            .test_groups
+            .iter()
+            .map(|g| g.group_type.as_str())
+            .collect();
         assert!(group_types.contains(&"valid_encapsulation"));
         assert!(group_types.contains(&"invalid_decapsulation"));
     }
@@ -969,7 +985,11 @@ mod tests {
         let results = run_ml_dsa_test_vectors(&vectors);
 
         assert_eq!(results.total, vectors.number_of_tests);
-        assert_eq!(results.failed, 0, "All ML-DSA tests should pass: {:?}", results.failures);
+        assert_eq!(
+            results.failed, 0,
+            "All ML-DSA tests should pass: {:?}",
+            results.failures
+        );
         assert_eq!(results.passed, results.total);
     }
 
@@ -979,7 +999,11 @@ mod tests {
         let results = run_ml_kem_test_vectors(&vectors);
 
         assert_eq!(results.total, vectors.number_of_tests);
-        assert_eq!(results.failed, 0, "All ML-KEM tests should pass: {:?}", results.failures);
+        assert_eq!(
+            results.failed, 0,
+            "All ML-KEM tests should pass: {:?}",
+            results.failures
+        );
         assert_eq!(results.passed, results.total);
     }
 
@@ -991,12 +1015,17 @@ mod tests {
         let json = serde_json::to_string_pretty(&vectors).expect("Serialization should succeed");
 
         // Deserialize back
-        let restored: TestVectorFile = serde_json::from_str(&json).expect("Deserialization should succeed");
+        let restored: TestVectorFile =
+            serde_json::from_str(&json).expect("Deserialization should succeed");
 
         // Run the restored vectors
         let results = run_ml_dsa_test_vectors(&restored);
 
-        assert_eq!(results.failed, 0, "Restored ML-DSA tests should pass: {:?}", results.failures);
+        assert_eq!(
+            results.failed, 0,
+            "Restored ML-DSA tests should pass: {:?}",
+            results.failures
+        );
     }
 
     #[test]
@@ -1007,11 +1036,16 @@ mod tests {
         let json = serde_json::to_string_pretty(&vectors).expect("Serialization should succeed");
 
         // Deserialize back
-        let restored: TestVectorFile = serde_json::from_str(&json).expect("Deserialization should succeed");
+        let restored: TestVectorFile =
+            serde_json::from_str(&json).expect("Deserialization should succeed");
 
         // Run the restored vectors
         let results = run_ml_kem_test_vectors(&restored);
 
-        assert_eq!(results.failed, 0, "Restored ML-KEM tests should pass: {:?}", results.failures);
+        assert_eq!(
+            results.failed, 0,
+            "Restored ML-KEM tests should pass: {:?}",
+            results.failures
+        );
     }
 }

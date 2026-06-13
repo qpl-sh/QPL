@@ -1,0 +1,55 @@
+# QPL Node — Default Configuration (Testnet)
+#
+# This file is the default configuration for the QPL operator node.
+# Override any setting via CLI flags (--listen, --name) or environment variables.
+
+# Node identity
+name = "qpl-operator"
+listen_addr = "0.0.0.0:9000"
+
+# Operator identity file (generated with --generate-identity)
+# identity_path = "/qpl/data/identity.json"
+
+# Solana RPC endpoint
+solana_rpc = "http://localhost:8899"
+
+# gRPC configuration
+[grpc]
+max_concurrent_streams = 100
+max_message_size = 4_194_304  # 4 MB
+keepalive_interval_secs = 30
+
+# TLS configuration (required for production)
+# [tls]
+# server_cert = "/qpl/tls/server.crt"
+# server_key = "/qpl/tls/server.key"
+# client_ca_path = "/qpl/tls/ca.crt"  # Enable for mTLS
+
+# Operator configuration
+[operator]
+# Heartbeat interval in seconds
+heartbeat_interval_secs = 30
+# Maximum missed heartbeats before suspension
+max_missed_heartbeats = 3
+# Supported signing algorithms (coordinator negotiates per-request)
+supported_signing_algorithms = ["Ed25519", "ECDSA-P256", "ML-DSA-65"]
+
+# Fee configuration
+[fees]
+# All fees in USD micro-units (1 unit = $0.000001)
+signing_base = 25_000              # $0.025
+proving_small_base = 1_000_000     # $1.00 (≤100 tx)
+proving_large_base = 2_500_000     # $2.50 (>100 tx)
+verification_base = 25_000         # $0.025
+proving_large_threshold = 100
+min_total_fee = 25_000             # $0.025 minimum
+
+# Rate limiting
+[rate_limit]
+enabled = true
+requests_per_second = 100
+burst_size = 200
+
+# Logging
+[logging]
+level = "info"  # trace, debug, info, warn, error

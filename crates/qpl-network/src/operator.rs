@@ -238,7 +238,10 @@ mod tests {
             low_stake,
         );
 
-        assert!(matches!(result, Err(NetworkError::InsufficientStake { .. })));
+        assert!(matches!(
+            result,
+            Err(NetworkError::InsufficientStake { .. })
+        ));
     }
 
     #[test]
@@ -266,9 +269,20 @@ mod tests {
             registry.activate(&id).unwrap();
         }
 
-        assert_eq!(registry.operators_for_service(ServiceType::Signing).len(), 2);
-        assert_eq!(registry.operators_for_service(ServiceType::Proving).len(), 2);
-        assert_eq!(registry.operators_for_service(ServiceType::Settlement).len(), 1);
+        assert_eq!(
+            registry.operators_for_service(ServiceType::Signing).len(),
+            2
+        );
+        assert_eq!(
+            registry.operators_for_service(ServiceType::Proving).len(),
+            2
+        );
+        assert_eq!(
+            registry
+                .operators_for_service(ServiceType::Settlement)
+                .len(),
+            1
+        );
         assert_eq!(registry.operators_for_service(ServiceType::Yield).len(), 1);
         assert_eq!(registry.operators_for_service(ServiceType::Rwa).len(), 0);
     }

@@ -6,9 +6,8 @@
 
 use thiserror::Error;
 use winterfell::{
-    crypto::DefaultRandomCoin,
-    math::fields::f128::BaseElement,
-    verify, AcceptableOptions, Proof, ProofOptions, VerifierError as WinterfellVerifierError,
+    crypto::DefaultRandomCoin, math::fields::f128::BaseElement, verify, AcceptableOptions, Proof,
+    ProofOptions, VerifierError as WinterfellVerifierError,
 };
 
 use crate::air::{SettlementAir, SettlementPublicInputs};
@@ -74,12 +73,21 @@ pub fn verify_proof(
         .map_err(|e| VerifierError::DeserializationError(e.to_string()))?;
 
     // Only accept High128 security level (S1 hardening)
-    let acceptable_options = AcceptableOptions::OptionSet(vec![
-        ProofOptions::new(48, 16, 0, winterfell::FieldExtension::None, 8, 31),
-    ]);
+    let acceptable_options = AcceptableOptions::OptionSet(vec![ProofOptions::new(
+        48,
+        16,
+        0,
+        winterfell::FieldExtension::None,
+        8,
+        31,
+    )]);
 
     // Verify the proof using winterfell's verifier
-    verify::<SettlementAir, HashFn, RandomCoin>(stark_proof, pub_inputs.clone(), &acceptable_options)?;
+    verify::<SettlementAir, HashFn, RandomCoin>(
+        stark_proof,
+        pub_inputs.clone(),
+        &acceptable_options,
+    )?;
 
     Ok(true)
 }
@@ -106,12 +114,21 @@ pub fn verify_proof_with_security_level(
             ProofOptions::new(32, 8, 0, winterfell::FieldExtension::None, 8, 31),
             ProofOptions::new(48, 16, 0, winterfell::FieldExtension::None, 8, 31),
         ]),
-        SecurityLevel::High128 => AcceptableOptions::OptionSet(vec![
-            ProofOptions::new(48, 16, 0, winterfell::FieldExtension::None, 8, 31),
-        ]),
+        SecurityLevel::High128 => AcceptableOptions::OptionSet(vec![ProofOptions::new(
+            48,
+            16,
+            0,
+            winterfell::FieldExtension::None,
+            8,
+            31,
+        )]),
     };
 
-    verify::<SettlementAir, HashFn, RandomCoin>(stark_proof, pub_inputs.clone(), &acceptable_options)?;
+    verify::<SettlementAir, HashFn, RandomCoin>(
+        stark_proof,
+        pub_inputs.clone(),
+        &acceptable_options,
+    )?;
 
     Ok(true)
 }
@@ -141,11 +158,20 @@ pub fn verify_proof_with_commitment(
     let stark_proof = Proof::from_bytes(&committed_proof.proof_bytes)
         .map_err(|e| VerifierError::DeserializationError(e.to_string()))?;
 
-    let acceptable_options = AcceptableOptions::OptionSet(vec![
-        ProofOptions::new(48, 16, 0, winterfell::FieldExtension::None, 8, 31),
-    ]);
+    let acceptable_options = AcceptableOptions::OptionSet(vec![ProofOptions::new(
+        48,
+        16,
+        0,
+        winterfell::FieldExtension::None,
+        8,
+        31,
+    )]);
 
-    verify::<SettlementAir, HashFn, RandomCoin>(stark_proof, pub_inputs.clone(), &acceptable_options)?;
+    verify::<SettlementAir, HashFn, RandomCoin>(
+        stark_proof,
+        pub_inputs.clone(),
+        &acceptable_options,
+    )?;
 
     Ok(true)
 }
@@ -168,7 +194,11 @@ pub fn verify_proof_with_options(
     let stark_proof = Proof::from_bytes(&proof.proof_bytes)
         .map_err(|e| VerifierError::DeserializationError(e.to_string()))?;
 
-    verify::<SettlementAir, HashFn, RandomCoin>(stark_proof, pub_inputs.clone(), acceptable_options)?;
+    verify::<SettlementAir, HashFn, RandomCoin>(
+        stark_proof,
+        pub_inputs.clone(),
+        acceptable_options,
+    )?;
 
     Ok(true)
 }
@@ -193,7 +223,12 @@ mod tests {
     use crate::trace::build_settlement_trace;
     use crate::types::{AccountBalance, AccountId, RollupState, Transaction};
 
-    fn make_test_transaction(sender_seed: u8, receiver_seed: u8, amount: u64, nonce: u64) -> Transaction {
+    fn make_test_transaction(
+        sender_seed: u8,
+        receiver_seed: u8,
+        amount: u64,
+        nonce: u64,
+    ) -> Transaction {
         // For verifier tests, we use the legacy new() method
         // Verification operates on already-validated transactions
         Transaction::new(
@@ -221,7 +256,9 @@ mod tests {
         let initial_state = make_initial_state(1, 1000);
         let txs = vec![make_test_transaction(1, 2, 100, 0)];
 
-        let proof = prover.prove_batch(&txs, &initial_state).expect("Proof generation should succeed");
+        let proof = prover
+            .prove_batch(&txs, &initial_state)
+            .expect("Proof generation should succeed");
 
         // Get the sender/receiver initial balances for public inputs
         let sender = AccountBalance::new(1000);
@@ -240,7 +277,11 @@ mod tests {
 
         // Verify the proof (default verifier now requires High128)
         let result = verify_proof(&proof, &pub_inputs);
-        assert!(result.is_ok(), "Verification should succeed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Verification should succeed: {:?}",
+            result.err()
+        );
         assert!(result.unwrap(), "Proof should be valid");
     }
 
@@ -251,7 +292,9 @@ mod tests {
         let initial_state = make_initial_state(1, 1000);
         let txs = vec![make_test_transaction(1, 2, 100, 0)];
 
-        let proof = prover.prove_batch(&txs, &initial_state).expect("Proof generation should succeed");
+        let proof = prover
+            .prove_batch(&txs, &initial_state)
+            .expect("Proof generation should succeed");
 
         // Create WRONG public inputs (different final balances)
         let wrong_pub_inputs = SettlementPublicInputs::new(
@@ -265,7 +308,10 @@ mod tests {
 
         // Verification should fail
         let result = verify_proof(&proof, &wrong_pub_inputs);
-        assert!(result.is_err(), "Verification should fail with wrong public inputs");
+        assert!(
+            result.is_err(),
+            "Verification should fail with wrong public inputs"
+        );
     }
 
     #[test]
@@ -275,7 +321,9 @@ mod tests {
         let initial_state = make_initial_state(1, 1000);
         let txs = vec![make_test_transaction(1, 2, 100, 0)];
 
-        let mut proof = prover.prove_batch(&txs, &initial_state).expect("Proof generation should succeed");
+        let mut proof = prover
+            .prove_batch(&txs, &initial_state)
+            .expect("Proof generation should succeed");
 
         // Get correct public inputs
         let sender = AccountBalance::new(1000);
@@ -299,7 +347,10 @@ mod tests {
 
         // Verification should fail
         let result = verify_proof(&proof, &pub_inputs);
-        assert!(result.is_err(), "Verification should fail with tampered proof");
+        assert!(
+            result.is_err(),
+            "Verification should fail with tampered proof"
+        );
     }
 
     #[test]
@@ -309,12 +360,20 @@ mod tests {
         let initial_state = make_initial_state(1, 1000);
         let txs = vec![make_test_transaction(1, 2, 100, 0)];
 
-        let proof = prover.prove_batch(&txs, &initial_state).expect("Proof generation should succeed");
+        let proof = prover
+            .prove_batch(&txs, &initial_state)
+            .expect("Proof generation should succeed");
 
-        assert!(is_proof_well_formed(&proof.proof_bytes), "Valid proof should be well-formed");
+        assert!(
+            is_proof_well_formed(&proof.proof_bytes),
+            "Valid proof should be well-formed"
+        );
 
         // Invalid bytes should not be well-formed
-        assert!(!is_proof_well_formed(&[0u8; 32]), "Random bytes should not be well-formed");
+        assert!(
+            !is_proof_well_formed(&[0u8; 32]),
+            "Random bytes should not be well-formed"
+        );
     }
 
     #[test]
@@ -323,7 +382,9 @@ mod tests {
         let initial_state = make_initial_state(1, 1000);
         let txs = vec![make_test_transaction(1, 2, 100, 0)];
 
-        let proof = prover.prove_batch(&txs, &initial_state).expect("Proof generation should succeed");
+        let proof = prover
+            .prove_batch(&txs, &initial_state)
+            .expect("Proof generation should succeed");
 
         let size = proof_size(&proof);
         assert!(size > 0, "Proof should have non-zero size");

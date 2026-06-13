@@ -42,7 +42,10 @@ pub async fn handle_sign(
 
     // Record fee collection
     state.metrics.record_fee(1000); // placeholder fee amount
-    state.metrics.fees_collected_micro_usd.fetch_add(0, Ordering::Relaxed);
+    state
+        .metrics
+        .fees_collected_micro_usd
+        .fetch_add(0, Ordering::Relaxed);
 
     tracing::info!(
         request_id = %request_id,

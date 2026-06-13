@@ -2,8 +2,8 @@
 
 //! Network error types.
 
-use thiserror::Error;
 use crate::types::{OperatorId, RequestId, ServiceType};
+use thiserror::Error;
 
 /// Errors that can occur in QPL network operations.
 #[derive(Debug, Error)]
@@ -87,9 +87,7 @@ pub enum NetworkError {
 
     /// A message arrived with a sequence number that did not strictly exceed
     /// the previously observed high-water mark for the same sender.
-    #[error(
-        "non-monotonic sequence from {sender}: got {got}, must be > {expected_gt}"
-    )]
+    #[error("non-monotonic sequence from {sender}: got {got}, must be > {expected_gt}")]
     NonMonotonicSequence {
         sender: OperatorId,
         expected_gt: u64,

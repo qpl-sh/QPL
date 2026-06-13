@@ -25,7 +25,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(e) => {
             println!("cargo:warning=QPL SDK: skipping proto compilation ({e}). Install protoc to generate gRPC clients.");
             // Write empty module so `mod generated` compiles
-            std::fs::write(format!("{}/mod.rs", out_dir), "// Auto-generated — install protoc to regenerate\n")?;
+            std::fs::write(
+                format!("{}/mod.rs", out_dir),
+                "// Auto-generated — install protoc to regenerate\n",
+            )?;
         }
     }
 

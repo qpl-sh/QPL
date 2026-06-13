@@ -108,7 +108,10 @@ impl RequestRouter {
                 .then_with(|| a.active_requests.cmp(&b.active_requests))
         });
 
-        Ok(eligible.into_iter().take(quorum.threshold as usize).collect())
+        Ok(eligible
+            .into_iter()
+            .take(quorum.threshold as usize)
+            .collect())
     }
 
     /// Selects a single operator for non-threshold operations.
@@ -200,7 +203,10 @@ mod tests {
         let op3 = make_operator(3, vec![ServiceType::Signing], 0.5);
         let operators: Vec<&OperatorRecord> = vec![&op1, &op2, &op3];
 
-        let quorum = QuorumRequirement { threshold: 2, total: 3 };
+        let quorum = QuorumRequirement {
+            threshold: 2,
+            total: 3,
+        };
         let selected =
             RequestRouter::select_quorum(ServiceType::Signing, &quorum, &operators).unwrap();
 
@@ -215,10 +221,16 @@ mod tests {
         let op1 = make_operator(1, vec![ServiceType::Signing], 0.0);
         let operators: Vec<&OperatorRecord> = vec![&op1];
 
-        let quorum = QuorumRequirement { threshold: 3, total: 5 };
+        let quorum = QuorumRequirement {
+            threshold: 3,
+            total: 5,
+        };
         let result = RequestRouter::select_quorum(ServiceType::Signing, &quorum, &operators);
 
-        assert!(matches!(result, Err(NetworkError::InsufficientOperators { .. })));
+        assert!(matches!(
+            result,
+            Err(NetworkError::InsufficientOperators { .. })
+        ));
     }
 
     #[test]

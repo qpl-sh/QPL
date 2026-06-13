@@ -107,9 +107,17 @@ impl MlKemPublicKey {
 impl std::fmt::Debug for MlKemPublicKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Show hex prefix of the public key (first 16 bytes)
-        let hex_prefix: String = self.bytes.iter().take(16).map(|b| format!("{:02x}", b)).collect();
+        let hex_prefix: String = self
+            .bytes
+            .iter()
+            .take(16)
+            .map(|b| format!("{:02x}", b))
+            .collect();
         f.debug_struct("MlKemPublicKey")
-            .field("bytes", &format!("{}... ({} bytes)", hex_prefix, self.bytes.len()))
+            .field(
+                "bytes",
+                &format!("{}... ({} bytes)", hex_prefix, self.bytes.len()),
+            )
             .finish()
     }
 }
@@ -190,9 +198,17 @@ impl MlKemCiphertext {
 impl std::fmt::Debug for MlKemCiphertext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Show hex prefix of the ciphertext (first 16 bytes)
-        let hex_prefix: String = self.bytes.iter().take(16).map(|b| format!("{:02x}", b)).collect();
+        let hex_prefix: String = self
+            .bytes
+            .iter()
+            .take(16)
+            .map(|b| format!("{:02x}", b))
+            .collect();
         f.debug_struct("MlKemCiphertext")
-            .field("bytes", &format!("{}... ({} bytes)", hex_prefix, self.bytes.len()))
+            .field(
+                "bytes",
+                &format!("{}... ({} bytes)", hex_prefix, self.bytes.len()),
+            )
             .finish()
     }
 }
@@ -285,7 +301,9 @@ impl std::fmt::Debug for MlKemKeyPair {
 /// Returns a tuple of (ciphertext, shared_secret). The ciphertext should be sent
 /// to the owner of the corresponding secret key, who can then decapsulate it
 /// to recover the same shared secret.
-pub fn encapsulate(public_key: &MlKemPublicKey) -> Result<(MlKemCiphertext, SharedSecret), MlKemError> {
+pub fn encapsulate(
+    public_key: &MlKemPublicKey,
+) -> Result<(MlKemCiphertext, SharedSecret), MlKemError> {
     let pk = mlkem1024::PublicKey::from_bytes(&public_key.bytes).map_err(|e| {
         MlKemError::EncapsulationError(format!("Failed to parse public key: {:?}", e))
     })?;
@@ -457,7 +475,8 @@ mod tests {
     #[test]
     fn test_ciphertext_serialization_roundtrip() {
         let keypair = generate_keypair().expect("keypair generation should succeed");
-        let (ciphertext, _) = encapsulate(keypair.public_key()).expect("encapsulation should succeed");
+        let (ciphertext, _) =
+            encapsulate(keypair.public_key()).expect("encapsulation should succeed");
 
         let bytes = ciphertext.as_bytes();
         let restored =
@@ -486,7 +505,8 @@ mod tests {
     #[test]
     fn test_debug_redacts_shared_secret() {
         let keypair = generate_keypair().expect("keypair generation should succeed");
-        let (_, shared_secret) = encapsulate(keypair.public_key()).expect("encapsulation should succeed");
+        let (_, shared_secret) =
+            encapsulate(keypair.public_key()).expect("encapsulation should succeed");
         let debug_str = format!("{:?}", shared_secret);
 
         assert!(
@@ -501,7 +521,10 @@ mod tests {
         let invalid_bytes = vec![0u8; 100]; // Wrong length
         let result = MlKemPublicKey::from_bytes(&invalid_bytes);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), MlKemError::SerializationError(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            MlKemError::SerializationError(_)
+        ));
     }
 
     #[test]
@@ -509,7 +532,10 @@ mod tests {
         let invalid_bytes = vec![0u8; 100]; // Wrong length
         let result = MlKemSecretKey::from_bytes(&invalid_bytes);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), MlKemError::SerializationError(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            MlKemError::SerializationError(_)
+        ));
     }
 
     #[test]
@@ -517,14 +543,19 @@ mod tests {
         let invalid_bytes = vec![0u8; 100]; // Wrong length
         let result = MlKemCiphertext::from_bytes(&invalid_bytes);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), MlKemError::SerializationError(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            MlKemError::SerializationError(_)
+        ));
     }
 
     #[test]
     fn test_shared_secret_constant_time_eq() {
         let keypair = generate_keypair().expect("keypair generation should succeed");
-        let (ciphertext, ss1) = encapsulate(keypair.public_key()).expect("encapsulation should succeed");
-        let ss2 = decapsulate(&ciphertext, &keypair.secret_key).expect("decapsulation should succeed");
+        let (ciphertext, ss1) =
+            encapsulate(keypair.public_key()).expect("encapsulation should succeed");
+        let ss2 =
+            decapsulate(&ciphertext, &keypair.secret_key).expect("decapsulation should succeed");
 
         // Same shared secrets should be equal
         assert_eq!(ss1, ss2);

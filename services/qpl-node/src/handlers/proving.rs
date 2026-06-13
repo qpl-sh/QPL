@@ -8,7 +8,7 @@
 
 use crate::server::{ProveRequest, ProveResponse};
 use crate::state::NodeState;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 /// Handle a STARK proof generation request.
 ///
@@ -35,8 +35,12 @@ pub async fn handle_prove(
 
     // Step 2-4: In production, delegates to qpl-stark-rollup.
     // Placeholder: return a dummy proof structure.
-    let security_bits = if req.security_bits == 0 { 96 } else { req.security_bits };
-    
+    let security_bits = if req.security_bits == 0 {
+        96
+    } else {
+        req.security_bits
+    };
+
     // Simulate proof generation (real proof would be KBs)
     let proof = vec![0xDE, 0xAD, 0xBE, 0xEF]; // Placeholder
 

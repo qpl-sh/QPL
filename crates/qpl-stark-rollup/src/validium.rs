@@ -174,8 +174,10 @@ pub trait ValidiumStore: Send + Sync {
     /// * `Ok(Some(ValidiumData))` - The data if found
     /// * `Ok(None)` - If no data exists for the commitment
     /// * `Err(ValidiumError)` - If retrieval fails
-    fn retrieve(&self, commitment: &ValidiumCommitment)
-        -> Result<Option<ValidiumData>, ValidiumError>;
+    fn retrieve(
+        &self,
+        commitment: &ValidiumCommitment,
+    ) -> Result<Option<ValidiumData>, ValidiumError>;
 
     /// Verify data matches commitment
     ///
@@ -370,8 +372,7 @@ mod tests {
     fn test_validium_commitment_serialization() {
         let commitment = ValidiumCommitment::new([42u8; 32], 5, 1234567890, 10);
 
-        let json =
-            serde_json::to_string(&commitment).expect("Serialization should succeed");
+        let json = serde_json::to_string(&commitment).expect("Serialization should succeed");
         let restored: ValidiumCommitment =
             serde_json::from_str(&json).expect("Deserialization should succeed");
 

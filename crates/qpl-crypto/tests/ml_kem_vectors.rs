@@ -4,8 +4,8 @@
 //! This module runs the generated ML-KEM test vectors through the runner
 //! and validates that all tests pass. It also tests JSON serialization roundtrip.
 
-use qpl_crypto::vectors::{generate_ml_kem_test_vectors, run_ml_kem_test_vectors, TestVectorFile};
 use qpl_crypto::ml_kem::CIPHERTEXT_BYTES;
+use qpl_crypto::vectors::{generate_ml_kem_test_vectors, run_ml_kem_test_vectors, TestVectorFile};
 
 #[test]
 fn test_ml_kem_vectors_all_pass() {
@@ -15,7 +15,10 @@ fn test_ml_kem_vectors_all_pass() {
     // Verify we have the expected structure
     assert_eq!(vectors.algorithm, "ML-KEM-1024");
     assert!(!vectors.test_groups.is_empty(), "Should have test groups");
-    assert!(vectors.number_of_tests >= 6, "Should have at least 6 test cases");
+    assert!(
+        vectors.number_of_tests >= 6,
+        "Should have at least 6 test cases"
+    );
 
     // Run all test vectors
     let results = run_ml_kem_test_vectors(&vectors);
@@ -103,7 +106,10 @@ fn test_ml_kem_json_serialization_roundtrip() {
 
     // Verify JSON is non-empty and contains expected content
     assert!(!json.is_empty(), "JSON should not be empty");
-    assert!(json.contains("ML-KEM-1024"), "JSON should contain algorithm name");
+    assert!(
+        json.contains("ML-KEM-1024"),
+        "JSON should contain algorithm name"
+    );
     assert!(
         json.contains("valid_encapsulation"),
         "JSON should contain valid_encapsulation group"

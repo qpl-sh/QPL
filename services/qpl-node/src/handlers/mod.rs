@@ -2,10 +2,10 @@
 
 //! Service handlers — business logic for each QPL operation.
 
-mod signing;
-mod proving;
 mod fees;
+mod proving;
+mod signing;
 
-pub use signing::handle_sign;
-pub use proving::handle_prove;
 pub use fees::estimate_fee;
+pub use proving::handle_prove;
+pub use signing::handle_sign;

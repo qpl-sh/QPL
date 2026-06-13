@@ -26,24 +26,36 @@
 //! - [`validium`] - Private Validium off-chain data management
 //! - [`crypto`] - ML-DSA integration and hash commitments
 
-pub mod types;
 pub mod air;
-pub mod trace;
-pub mod prover;
-pub mod verifier;
-pub mod executor;
-pub mod validium;
 pub mod crypto;
+pub mod executor;
+pub mod prover;
 pub mod security;
+pub mod trace;
+pub mod types;
+pub mod validium;
+pub mod verifier;
 
 #[cfg(test)]
 mod red_team_tests;
 
 // Re-export core types at crate root
-pub use types::{Transaction, RollupState, AccountBalance, RollupProof, RollupProofWithCommitment, RollupPublicInputs, BatchResult, AccountId, compute_public_inputs_commitment};
-pub use validium::{ValidiumCommitment, ValidiumData, ValidiumStore, InMemoryValidiumStore, ValidiumError, create_commitment};
-pub use prover::{SettlementProver, ProofConfig, ProverError, SecurityLevel};
-pub use verifier::{verify_proof, verify_proof_with_options, verify_proof_with_security_level, verify_proof_with_commitment, VerifierError, is_proof_well_formed, proof_size};
-pub use verifier::SecurityLevel as VerifierSecurityLevel;
-pub use executor::{StateExecutor, TransactionValidator, ExecutionError, CdaEngineHook, NoOpCdaHook, StateExecutorWithHooks, NonceRegistry};
+pub use executor::{
+    CdaEngineHook, ExecutionError, NoOpCdaHook, NonceRegistry, StateExecutor,
+    StateExecutorWithHooks, TransactionValidator,
+};
+pub use prover::{ProofConfig, ProverError, SecurityLevel, SettlementProver};
 pub use security::GasEstimates;
+pub use types::{
+    compute_public_inputs_commitment, AccountBalance, AccountId, BatchResult, RollupProof,
+    RollupProofWithCommitment, RollupPublicInputs, RollupState, Transaction,
+};
+pub use validium::{
+    create_commitment, InMemoryValidiumStore, ValidiumCommitment, ValidiumData, ValidiumError,
+    ValidiumStore,
+};
+pub use verifier::SecurityLevel as VerifierSecurityLevel;
+pub use verifier::{
+    is_proof_well_formed, proof_size, verify_proof, verify_proof_with_commitment,
+    verify_proof_with_options, verify_proof_with_security_level, VerifierError,
+};

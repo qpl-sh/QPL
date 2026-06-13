@@ -8,13 +8,15 @@
 
 #[cfg(test)]
 mod red_team_tests {
+    use crate::air::SettlementPublicInputs;
+    use crate::executor::{NonceRegistry, TransactionValidator};
     use crate::prover::{ProofConfig, SecurityLevel, SettlementProver};
     use crate::trace::build_settlement_trace;
     use crate::types::{AccountBalance, AccountId, RollupState, Transaction};
-    use crate::verifier::{verify_proof, verify_proof_with_security_level, verify_proof_with_commitment};
     use crate::verifier::SecurityLevel as VerifierSecurityLevel;
-    use crate::executor::{TransactionValidator, NonceRegistry};
-    use crate::air::SettlementPublicInputs;
+    use crate::verifier::{
+        verify_proof, verify_proof_with_commitment, verify_proof_with_security_level,
+    };
 
     // -----------------------------------------------------------------------
     // Helpers
@@ -192,10 +194,13 @@ mod red_team_tests {
         );
 
         // Validate without signature
-        let validation1 = TransactionValidator::validate_transaction_skip_signature(
-            &batch1_tx, &state1,
+        let validation1 =
+            TransactionValidator::validate_transaction_skip_signature(&batch1_tx, &state1);
+        assert!(
+            validation1.is_ok(),
+            "Batch 1 tx should validate: {:?}",
+            validation1.err()
         );
-        assert!(validation1.is_ok(), "Batch 1 tx should validate: {:?}", validation1.err());
 
         // Record in global nonce registry
         let record1 = registry.record(&sender_id, batch1_tx.nonce, state1.batch_height);
@@ -229,9 +234,8 @@ mod red_team_tests {
         );
 
         // Local state validation passes (fresh state doesn't know about batch 1)
-        let validation2 = TransactionValidator::validate_transaction_skip_signature(
-            &batch2_tx, &state2,
-        );
+        let validation2 =
+            TransactionValidator::validate_transaction_skip_signature(&batch2_tx, &state2);
         assert!(
             validation2.is_ok(),
             "Local validation passes on fresh state — this is expected"
@@ -270,6 +274,9 @@ mod red_team_tests {
 
         // Nonce 0 at height 0 was evicted — can be re-used (in new context)
         let re_record = registry.record(&sender_id, 0, 6);
-        assert!(re_record.is_ok(), "Evicted nonce should be recordable again");
+        assert!(
+            re_record.is_ok(),
+            "Evicted nonce should be recordable again"
+        );
     }
 }

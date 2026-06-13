@@ -17,13 +17,13 @@
 //! cargo bench -p qpl-stark-rollup
 //! ```
 
-use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
-use qpl_stark_rollup::types::{Transaction, RollupState, AccountId, AccountBalance};
-use qpl_stark_rollup::prover::{SettlementProver, ProofConfig, SecurityLevel};
-use qpl_stark_rollup::verifier::verify_proof;
-use qpl_stark_rollup::executor::StateExecutor;
-use qpl_stark_rollup::trace::build_settlement_trace;
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use qpl_stark_rollup::air::SettlementPublicInputs;
+use qpl_stark_rollup::executor::StateExecutor;
+use qpl_stark_rollup::prover::{ProofConfig, SecurityLevel, SettlementProver};
+use qpl_stark_rollup::trace::build_settlement_trace;
+use qpl_stark_rollup::types::{AccountBalance, AccountId, RollupState, Transaction};
+use qpl_stark_rollup::verifier::verify_proof;
 
 /// Helper to create a test account ID from a seed
 fn test_account_id(seed: u8) -> AccountId {
@@ -31,7 +31,12 @@ fn test_account_id(seed: u8) -> AccountId {
 }
 
 /// Helper to create a test transaction
-fn make_test_transaction(sender_seed: u8, receiver_seed: u8, amount: u64, nonce: u64) -> Transaction {
+fn make_test_transaction(
+    sender_seed: u8,
+    receiver_seed: u8,
+    amount: u64,
+    nonce: u64,
+) -> Transaction {
     Transaction::new(
         test_account_id(sender_seed),
         test_account_id(receiver_seed),
@@ -60,38 +65,35 @@ fn make_funded_state(sender_seed: u8, sender_balance: u64) -> RollupState {
 }
 
 /// Benchmark proof generation for different batch sizes.
-/// 
+///
 /// Uses small batch sizes (2, 4, 8) since STARK proving is computationally expensive.
 fn bench_proof_generation(c: &mut Criterion) {
     let mut group = c.benchmark_group("proof_generation");
-    
+
     // Configure for longer running benchmarks
     group.sample_size(10);
-    
+
     let prover = SettlementProver::new(ProofConfig::new(SecurityLevel::Standard96));
-    
+
     for batch_size in [2, 4, 8].iter() {
         let initial_balance = 1_000_000u64;
         let txs = generate_test_transactions(*batch_size, initial_balance);
         let initial_state = make_funded_state(1, initial_balance);
-        
-        group.bench_with_input(
-            BenchmarkId::new("prove", batch_size),
-            batch_size,
-            |b, _| {
-                b.iter(|| {
-                    prover.prove_batch(&txs, &initial_state)
-                        .expect("Proof generation should succeed")
-                });
-            },
-        );
+
+        group.bench_with_input(BenchmarkId::new("prove", batch_size), batch_size, |b, _| {
+            b.iter(|| {
+                prover
+                    .prove_batch(&txs, &initial_state)
+                    .expect("Proof generation should succeed")
+            });
+        });
     }
-    
+
     group.finish();
 }
 
 /// Benchmark proof verification.
-/// 
+///
 /// Generates a proof once and benchmarks only the verification step.
 /// Verification should be fast (< 10ms typically).
 fn bench_proof_verification(c: &mut Criterion) {
@@ -100,16 +102,16 @@ fn bench_proof_verification(c: &mut Criterion) {
     let initial_balance = 10_000u64;
     let initial_state = make_funded_state(1, initial_balance);
     let txs = vec![make_test_transaction(1, 2, 100, 0)];
-    
+
     let proof = prover
         .prove_batch(&txs, &initial_state)
         .expect("Proof generation should succeed");
-    
+
     // Get the sender/receiver initial balances for public inputs
     let sender = AccountBalance::new(initial_balance);
     let receiver = AccountBalance::new(0);
     let trace_result = build_settlement_trace(&txs, &sender, &receiver);
-    
+
     let pub_inputs = SettlementPublicInputs::new(
         sender.balance,
         receiver.balance,
@@ -118,50 +120,46 @@ fn bench_proof_verification(c: &mut Criterion) {
         trace_result.final_receiver_balance,
         trace_result.final_nonce,
     );
-    
+
     c.bench_function("proof_verification", |b| {
-        b.iter(|| {
-            verify_proof(&proof, &pub_inputs).expect("Verification should succeed")
-        });
+        b.iter(|| verify_proof(&proof, &pub_inputs).expect("Verification should succeed"));
     });
 }
 
 /// Benchmark trace building step (no proving).
-/// 
+///
 /// Measures the time to construct the execution trace from transactions.
 fn bench_trace_building(c: &mut Criterion) {
     let mut group = c.benchmark_group("trace_building");
-    
+
     for batch_size in [10, 50, 100, 500].iter() {
         let initial_balance = 10_000_000u64;
         let txs = generate_test_transactions(*batch_size, initial_balance);
         let sender = AccountBalance::new(initial_balance);
         let receiver = AccountBalance::new(0);
-        
+
         group.bench_with_input(
             BenchmarkId::new("build_trace", batch_size),
             batch_size,
             |b, _| {
-                b.iter(|| {
-                    build_settlement_trace(&txs, &sender, &receiver)
-                });
+                b.iter(|| build_settlement_trace(&txs, &sender, &receiver));
             },
         );
     }
-    
+
     group.finish();
 }
 
 /// Benchmark batch execution (no proving).
-/// 
+///
 /// Measures the time to execute transaction batches through the StateExecutor.
 fn bench_batch_execution(c: &mut Criterion) {
     let mut group = c.benchmark_group("batch_execution");
-    
+
     for batch_size in [10, 100, 1000].iter() {
         let initial_balance = 100_000_000u64;
         let txs = generate_test_transactions(*batch_size, initial_balance);
-        
+
         group.bench_with_input(
             BenchmarkId::new("execute_batch", batch_size),
             batch_size,
@@ -173,16 +171,16 @@ fn bench_batch_execution(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 
 /// Benchmark state root computation.
-/// 
+///
 /// Measures the time to compute state roots for states with varying account counts.
 fn bench_state_root_computation(c: &mut Criterion) {
     let mut group = c.benchmark_group("state_root");
-    
+
     for account_count in [10, 100, 1000].iter() {
         // Create a state with many accounts
         let mut state = RollupState::new();
@@ -190,7 +188,7 @@ fn bench_state_root_computation(c: &mut Criterion) {
             let id = AccountId::from_bytes([i as u8; 32]);
             state.get_or_create_account(&id).balance = 1000;
         }
-        
+
         group.bench_with_input(
             BenchmarkId::new("compute_root", account_count),
             account_count,
@@ -201,7 +199,7 @@ fn bench_state_root_computation(c: &mut Criterion) {
             },
         );
     }
-    
+
     group.finish();
 }
 

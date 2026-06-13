@@ -47,7 +47,7 @@ impl<'a> SigningService<'a> {
         message: &[u8],
         quorum: QuorumRequirement,
     ) -> Result<SignResult, SdkError> {
-        // In production: 
+        // In production:
         // 1. Call EstimateFee on the operator
         // 2. Pay fee on-chain
         // 3. Submit SignRequest with fee proof
@@ -66,7 +66,12 @@ impl<'a> SigningService<'a> {
     }
 
     /// Verify an ML-DSA signature locally (no network call, no fee).
-    pub fn verify(&self, _public_key: &[u8], _message: &[u8], _signature: &[u8]) -> Result<bool, SdkError> {
+    pub fn verify(
+        &self,
+        _public_key: &[u8],
+        _message: &[u8],
+        _signature: &[u8],
+    ) -> Result<bool, SdkError> {
         // Delegates to qpl-crypto for local verification
         // No fee — verification is free
         Ok(true)

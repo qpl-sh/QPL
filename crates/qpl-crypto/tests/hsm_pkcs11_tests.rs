@@ -13,7 +13,9 @@
 
 #![cfg(feature = "cloudhsm")]
 
-use qpl_crypto::hsm::{HsmError, HsmProvider, KeyHandle, KeyType, Pkcs11HsmProvider, SoftHsmProvider};
+use qpl_crypto::hsm::{
+    HsmError, HsmProvider, KeyHandle, KeyType, Pkcs11HsmProvider, SoftHsmProvider,
+};
 use std::sync::Once;
 
 static INIT: Once = Once::new();
@@ -407,7 +409,11 @@ async fn test_pkcs11_concurrent_operations() {
 
     // Verify all keys are unique
     let ids: std::collections::HashSet<&str> = keys.iter().map(|k| k.id()).collect();
-    assert_eq!(ids.len(), keys.len(), "All concurrent key IDs should be unique");
+    assert_eq!(
+        ids.len(),
+        keys.len(),
+        "All concurrent key IDs should be unique"
+    );
 }
 
 // ============================================================================

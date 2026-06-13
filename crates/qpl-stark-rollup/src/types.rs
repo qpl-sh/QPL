@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! Core domain types for the STARK rollup settlement layer.
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Unique identifier for accounts (derived from ML-DSA public key hash)
@@ -11,7 +11,7 @@ pub struct AccountId(pub [u8; 32]);
 impl AccountId {
     /// Create an AccountId from an ML-DSA public key by hashing it with SHA-256
     pub fn from_public_key(pk_bytes: &[u8]) -> Self {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(pk_bytes);
         let result = hasher.finalize();
@@ -60,7 +60,7 @@ pub struct Transaction {
 
 impl Transaction {
     /// Create a new transaction with explicit sender AccountId (for legacy/testing use)
-    /// 
+    ///
     /// NOTE: For production use, prefer `new_signed()` which derives sender from public key.
     pub fn new(
         sender: AccountId,
@@ -70,11 +70,19 @@ impl Transaction {
         timestamp: u64,
         signature: Vec<u8>,
     ) -> Self {
-        Self::new_with_public_key(Vec::new(), sender, receiver, amount, nonce, timestamp, signature)
+        Self::new_with_public_key(
+            Vec::new(),
+            sender,
+            receiver,
+            amount,
+            nonce,
+            timestamp,
+            signature,
+        )
     }
 
     /// Create a new transaction with the sender's public key
-    /// 
+    ///
     /// The sender AccountId is derived from the public key via SHA-256 hash.
     pub fn new_from_public_key(
         sender_public_key: Vec<u8>,
@@ -85,7 +93,15 @@ impl Transaction {
         signature: Vec<u8>,
     ) -> Self {
         let sender = AccountId::from_public_key(&sender_public_key);
-        Self::new_with_public_key(sender_public_key, sender, receiver, amount, nonce, timestamp, signature)
+        Self::new_with_public_key(
+            sender_public_key,
+            sender,
+            receiver,
+            amount,
+            nonce,
+            timestamp,
+            signature,
+        )
     }
 
     /// Create a new transaction with explicit public key and sender
@@ -114,7 +130,7 @@ impl Transaction {
 
     /// Compute the transaction ID as SHA-256 hash of transaction data
     pub fn compute_id(&mut self) {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(self.sender.as_bytes());
         hasher.update(self.receiver.as_bytes());
@@ -151,7 +167,11 @@ pub struct AccountBalance {
 impl AccountBalance {
     /// Create a new account balance with given initial balance
     pub fn new(balance: u64) -> Self {
-        Self { balance, locked: 0, nonce: 0 }
+        Self {
+            balance,
+            locked: 0,
+            nonce: 0,
+        }
     }
 
     /// Get the available balance (total minus locked)
@@ -189,7 +209,9 @@ impl RollupState {
 
     /// Get or create an account
     pub fn get_or_create_account(&mut self, id: &AccountId) -> &mut AccountBalance {
-        self.accounts.entry(id.clone()).or_insert_with(|| AccountBalance::new(0))
+        self.accounts
+            .entry(id.clone())
+            .or_insert_with(|| AccountBalance::new(0))
     }
 
     /// Get account balance (read-only)
@@ -199,7 +221,7 @@ impl RollupState {
 
     /// Compute state root as SHA-256 hash of all account data
     pub fn compute_state_root(&mut self) {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         for (id, balance) in &self.accounts {
             hasher.update(id.as_bytes());
@@ -307,13 +329,13 @@ impl RollupProofWithCommitment {
 pub fn compute_public_inputs_commitment(
     pub_inputs: &crate::air::SettlementPublicInputs,
 ) -> [u8; 32] {
-    use sha2::{Sha256, Digest};
-    use winterfell::math::{StarkField, ToElements};
+    use sha2::{Digest, Sha256};
     use winterfell::math::fields::f128::BaseElement;
+    use winterfell::math::{StarkField, ToElements};
     let mut hasher = Sha256::new();
     let elements: Vec<BaseElement> = pub_inputs.to_elements();
     for elem in &elements {
-        hasher.update(&elem.as_int().to_le_bytes());
+        hasher.update(elem.as_int().to_le_bytes());
     }
     let result = hasher.finalize();
     let mut hash = [0u8; 32];
@@ -366,14 +388,14 @@ mod tests {
     fn test_account_id_from_public_key() {
         let pk_bytes = vec![1u8; 100];
         let id = AccountId::from_public_key(&pk_bytes);
-        
+
         // Verify it's a valid 32-byte hash
         assert_eq!(id.as_bytes().len(), 32);
-        
+
         // Same input should produce same output
         let id2 = AccountId::from_public_key(&pk_bytes);
         assert_eq!(id, id2);
-        
+
         // Different input should produce different output
         let different_pk = vec![2u8; 100];
         let id3 = AccountId::from_public_key(&different_pk);
@@ -401,10 +423,10 @@ mod tests {
     fn test_account_balance_available() {
         let mut balance = AccountBalance::new(1000);
         assert_eq!(balance.available(), 1000);
-        
+
         balance.locked = 300;
         assert_eq!(balance.available(), 700);
-        
+
         // Test saturating subtraction
         balance.locked = 1500;
         assert_eq!(balance.available(), 0);
@@ -422,18 +444,18 @@ mod tests {
     fn test_rollup_state_get_or_create_account() {
         let mut state = RollupState::new();
         let id = AccountId::from_bytes([1u8; 32]);
-        
+
         // Account doesn't exist yet
         assert!(state.get_account(&id).is_none());
-        
+
         // Create it
         let balance = state.get_or_create_account(&id);
         balance.balance = 500;
-        
+
         // Now it exists
         assert!(state.get_account(&id).is_some());
         assert_eq!(state.get_account(&id).unwrap().balance, 500);
-        
+
         // Get again (should return existing)
         let balance2 = state.get_or_create_account(&id);
         assert_eq!(balance2.balance, 500);
@@ -443,21 +465,21 @@ mod tests {
     fn test_rollup_state_compute_state_root() {
         let mut state1 = RollupState::new();
         let mut state2 = RollupState::new();
-        
+
         // Empty states should have same root
         state1.compute_state_root();
         state2.compute_state_root();
         assert_eq!(state1.state_root, state2.state_root);
-        
+
         // Adding same account to both should still match
         let id = AccountId::from_bytes([1u8; 32]);
         state1.get_or_create_account(&id).balance = 100;
         state2.get_or_create_account(&id).balance = 100;
-        
+
         state1.compute_state_root();
         state2.compute_state_root();
         assert_eq!(state1.state_root, state2.state_root);
-        
+
         // Different balance should produce different root
         state2.get_or_create_account(&id).balance = 200;
         state2.compute_state_root();
@@ -468,7 +490,7 @@ mod tests {
     fn test_transaction_creation() {
         let sender = AccountId::from_bytes([1u8; 32]);
         let receiver = AccountId::from_bytes([2u8; 32]);
-        
+
         let tx = Transaction::new(
             sender.clone(),
             receiver.clone(),
@@ -477,7 +499,7 @@ mod tests {
             1234567890,
             vec![0u8; 64],
         );
-        
+
         assert_eq!(tx.sender, sender);
         assert_eq!(tx.receiver, receiver);
         assert_eq!(tx.amount, 100);
@@ -490,7 +512,7 @@ mod tests {
     fn test_transaction_serialization_roundtrip() {
         let sender = AccountId::from_bytes([1u8; 32]);
         let receiver = AccountId::from_bytes([2u8; 32]);
-        
+
         let tx = Transaction::new_with_public_key(
             vec![0xDE; 64],
             sender,
@@ -500,13 +522,13 @@ mod tests {
             1234567890,
             vec![0xAB; 64],
         );
-        
+
         // Serialize to JSON
         let json = serde_json::to_string(&tx).expect("Serialization should succeed");
-        
+
         // Deserialize back
         let tx2: Transaction = serde_json::from_str(&json).expect("Deserialization should succeed");
-        
+
         assert_eq!(tx.id, tx2.id);
         assert_eq!(tx.sender, tx2.sender);
         assert_eq!(tx.sender_public_key, tx2.sender_public_key);
@@ -520,18 +542,11 @@ mod tests {
     fn test_transaction_signing_message() {
         let sender = AccountId::from_bytes([1u8; 32]);
         let receiver = AccountId::from_bytes([2u8; 32]);
-        
-        let tx = Transaction::new(
-            sender.clone(),
-            receiver.clone(),
-            100,
-            1,
-            1234567890,
-            vec![],
-        );
-        
+
+        let tx = Transaction::new(sender.clone(), receiver.clone(), 100, 1, 1234567890, vec![]);
+
         let msg = tx.signing_message();
-        
+
         // Should contain sender, receiver, amount, nonce, timestamp
         assert!(!msg.is_empty());
         assert_eq!(msg.len(), 32 + 32 + 8 + 8 + 8); // 88 bytes
@@ -539,13 +554,8 @@ mod tests {
 
     #[test]
     fn test_rollup_public_inputs_creation() {
-        let inputs = RollupPublicInputs::new(
-            [1u8; 32],
-            [2u8; 32],
-            10,
-            5,
-        );
-        
+        let inputs = RollupPublicInputs::new([1u8; 32], [2u8; 32], 10, 5);
+
         assert_eq!(inputs.initial_state_root, [1u8; 32]);
         assert_eq!(inputs.final_state_root, [2u8; 32]);
         assert_eq!(inputs.transaction_count, 10);
@@ -554,16 +564,12 @@ mod tests {
 
     #[test]
     fn test_rollup_public_inputs_serialization() {
-        let inputs = RollupPublicInputs::new(
-            [1u8; 32],
-            [2u8; 32],
-            10,
-            5,
-        );
-        
+        let inputs = RollupPublicInputs::new([1u8; 32], [2u8; 32], 10, 5);
+
         let json = serde_json::to_string(&inputs).expect("Serialization should succeed");
-        let inputs2: RollupPublicInputs = serde_json::from_str(&json).expect("Deserialization should succeed");
-        
+        let inputs2: RollupPublicInputs =
+            serde_json::from_str(&json).expect("Deserialization should succeed");
+
         assert_eq!(inputs, inputs2);
     }
 
@@ -571,7 +577,7 @@ mod tests {
     fn test_transaction_new_from_public_key() {
         let pk_bytes = vec![0xAB; 128];
         let receiver = AccountId::from_bytes([2u8; 32]);
-        
+
         let tx = Transaction::new_from_public_key(
             pk_bytes.clone(),
             receiver.clone(),
@@ -580,7 +586,7 @@ mod tests {
             1234567890,
             vec![0xCD; 64],
         );
-        
+
         // sender should be derived from public key
         let expected_sender = AccountId::from_public_key(&pk_bytes);
         assert_eq!(tx.sender, expected_sender);
@@ -592,13 +598,8 @@ mod tests {
     #[test]
     fn test_batch_result_creation() {
         let state = RollupState::new();
-        let result = BatchResult::new(
-            state,
-            5,
-            2,
-            vec![(3, "Insufficient balance".to_string())],
-        );
-        
+        let result = BatchResult::new(state, 5, 2, vec![(3, "Insufficient balance".to_string())]);
+
         assert_eq!(result.applied_count, 5);
         assert_eq!(result.rejected_count, 2);
         assert_eq!(result.rejections.len(), 1);

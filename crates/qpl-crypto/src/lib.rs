@@ -19,16 +19,18 @@
 //! - Algorithmic agility lets operators select HSM-native algorithms today and
 //!   migrate to ML-DSA when HSM firmware ships FIPS 204 support
 
-pub mod ml_dsa;
-pub mod ml_kem;
 pub mod algorithm;
 pub mod hsm;
+pub mod ml_dsa;
+pub mod ml_kem;
 pub mod vectors;
 
 // Re-export core types at crate root for convenience
-pub use ml_dsa::{MlDsaKeyPair, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature, MlDsaError};
-pub use ml_kem::{MlKemKeyPair, MlKemPublicKey, MlKemSecretKey, MlKemCiphertext, SharedSecret, MlKemError};
 pub use algorithm::{AgilePublicKey, AgileSignature, AgilityError, SignatureAlgorithm};
-pub use hsm::{HsmProvider, SoftHsmProvider, KeyHandle, KeyType, HsmError};
 #[cfg(feature = "cloudhsm")]
 pub use hsm::Pkcs11HsmProvider;
+pub use hsm::{HsmError, HsmProvider, KeyHandle, KeyType, SoftHsmProvider};
+pub use ml_dsa::{MlDsaError, MlDsaKeyPair, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature};
+pub use ml_kem::{
+    MlKemCiphertext, MlKemError, MlKemKeyPair, MlKemPublicKey, MlKemSecretKey, SharedSecret,
+};

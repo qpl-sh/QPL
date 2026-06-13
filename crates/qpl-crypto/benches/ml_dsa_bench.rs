@@ -19,7 +19,9 @@ fn bench_signing(c: &mut Criterion) {
 
     c.bench_function("ml_dsa_sign_1kb", |b| {
         b.iter(|| {
-            let signature = keypair.sign(black_box(&message)).expect("Signing should succeed");
+            let signature = keypair
+                .sign(black_box(&message))
+                .expect("Signing should succeed");
             black_box(signature)
         })
     });

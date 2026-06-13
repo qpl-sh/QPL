@@ -123,7 +123,9 @@ impl OperatorCapabilities {
 
     /// Returns a bitmask representation of capabilities.
     pub fn as_bitmask(&self) -> u32 {
-        self.services.iter().fold(0u32, |mask, s| mask | (1 << (*s as u8)))
+        self.services
+            .iter()
+            .fold(0u32, |mask, s| mask | (1 << (*s as u8)))
     }
 
     /// Constructs capabilities from a bitmask.
@@ -234,15 +236,24 @@ impl Default for QuorumRequirement {
 
 impl QuorumRequirement {
     pub fn three_of_five() -> Self {
-        Self { threshold: 3, total: 5 }
+        Self {
+            threshold: 3,
+            total: 5,
+        }
     }
 
     pub fn two_of_three() -> Self {
-        Self { threshold: 2, total: 3 }
+        Self {
+            threshold: 2,
+            total: 3,
+        }
     }
 
     pub fn five_of_seven() -> Self {
-        Self { threshold: 5, total: 7 }
+        Self {
+            threshold: 5,
+            total: 7,
+        }
     }
 }
 

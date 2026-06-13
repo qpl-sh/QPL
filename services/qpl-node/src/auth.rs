@@ -87,8 +87,12 @@ impl std::fmt::Display for AuthFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UnknownOperator => write!(f, "unknown operator id"),
-            Self::StaleTimestamp { age_nanos } => write!(f, "stale timestamp ({} ns old)", age_nanos),
-            Self::FutureTimestamp { ahead_nanos } => write!(f, "future timestamp ({} ns ahead)", ahead_nanos),
+            Self::StaleTimestamp { age_nanos } => {
+                write!(f, "stale timestamp ({} ns old)", age_nanos)
+            }
+            Self::FutureTimestamp { ahead_nanos } => {
+                write!(f, "future timestamp ({} ns ahead)", ahead_nanos)
+            }
             Self::BadOperatorIdHex => write!(f, "operator_id is not valid hex"),
             Self::BadSignatureHex => write!(f, "signature is not valid hex"),
             Self::BadPublicKey => write!(f, "configured public key failed to parse"),
@@ -174,7 +178,8 @@ pub fn verify_auth(
     let pubkey_bytes = hex::decode(&pubkey_hex).map_err(|_| AuthFailure::BadPublicKey)?;
 
     // Step 3: hex-decode signature.
-    let _signature_bytes = hex::decode(&auth.signature).map_err(|_| AuthFailure::BadSignatureHex)?;
+    let _signature_bytes =
+        hex::decode(&auth.signature).map_err(|_| AuthFailure::BadSignatureHex)?;
     // Sanity check operator_id is hex too.
     let _ = hex::decode(&auth.operator_id).map_err(|_| AuthFailure::BadOperatorIdHex)?;
 

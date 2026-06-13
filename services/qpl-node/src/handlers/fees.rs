@@ -17,7 +17,9 @@ pub async fn estimate_fee(
     let urg = parse_urgency(urgency)?;
 
     let request_id = RequestId::new();
-    let estimate = state.fee_calculator.estimate(request_id, &operation, None, urg);
+    let estimate = state
+        .fee_calculator
+        .estimate(request_id, &operation, None, urg);
 
     // Check operator minimum
     let fee = estimate.total_fee.max(state.config.fees.min_fee_micro_usd);

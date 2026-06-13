@@ -4,7 +4,7 @@
 //! Provides hash commitment functions and ML-DSA signature verification
 //! for the rollup. Uses qpl-crypto for post-quantum operations.
 
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 /// Compute SHA-256 hash commitment for a transaction
 pub fn transaction_commitment(tx_bytes: &[u8]) -> [u8; 32] {
@@ -74,8 +74,7 @@ pub fn verify_transaction_signature(
         .map_err(|e| format!("Invalid public key: {}", e))?;
     let sig = qpl_crypto::ml_dsa::MlDsaSignature::from_bytes(signature_bytes)
         .map_err(|e| format!("Invalid signature: {}", e))?;
-    qpl_crypto::ml_dsa::verify(&pk, message, &sig)
-        .map_err(|e| format!("Verification error: {}", e))
+    qpl_crypto::ml_dsa::verify(&pk, message, &sig).map_err(|e| format!("Verification error: {}", e))
 }
 
 /// Hash data using SHA-256
@@ -180,7 +179,9 @@ mod tests {
         assert_eq!(hash.len(), 32);
 
         // Known SHA-256 hash of "hello world"
-        let expected = hex::decode("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9").unwrap();
+        let expected =
+            hex::decode("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9")
+                .unwrap();
         assert_eq!(hash.as_slice(), expected.as_slice());
     }
 
@@ -198,7 +199,8 @@ mod tests {
     #[test]
     fn test_verify_transaction_signature_integration() {
         // Generate a keypair
-        let keypair = qpl_crypto::ml_dsa::generate_keypair().expect("Key generation should succeed");
+        let keypair =
+            qpl_crypto::ml_dsa::generate_keypair().expect("Key generation should succeed");
 
         // Create a message (simulating transaction data)
         let message = b"sender:abc receiver:xyz amount:100 nonce:1";
@@ -219,7 +221,8 @@ mod tests {
 
     #[test]
     fn test_verify_transaction_signature_wrong_message() {
-        let keypair = qpl_crypto::ml_dsa::generate_keypair().expect("Key generation should succeed");
+        let keypair =
+            qpl_crypto::ml_dsa::generate_keypair().expect("Key generation should succeed");
         let message = b"original message";
         let wrong_message = b"tampered message";
 
@@ -232,12 +235,16 @@ mod tests {
         );
 
         assert!(result.is_ok());
-        assert!(!result.unwrap(), "Signature should be invalid for wrong message");
+        assert!(
+            !result.unwrap(),
+            "Signature should be invalid for wrong message"
+        );
     }
 
     #[test]
     fn test_verify_transaction_signature_invalid_public_key() {
-        let keypair = qpl_crypto::ml_dsa::generate_keypair().expect("Key generation should succeed");
+        let keypair =
+            qpl_crypto::ml_dsa::generate_keypair().expect("Key generation should succeed");
         let message = b"test message";
         let signature = keypair.sign(message).expect("Signing should succeed");
 
@@ -250,17 +257,15 @@ mod tests {
 
     #[test]
     fn test_verify_transaction_signature_invalid_signature() {
-        let keypair = qpl_crypto::ml_dsa::generate_keypair().expect("Key generation should succeed");
+        let keypair =
+            qpl_crypto::ml_dsa::generate_keypair().expect("Key generation should succeed");
         let message = b"test message";
 
         // Use invalid signature bytes
         let invalid_sig = vec![0u8; 100]; // Wrong length
 
-        let result = verify_transaction_signature(
-            keypair.public_key().as_bytes(),
-            message,
-            &invalid_sig,
-        );
+        let result =
+            verify_transaction_signature(keypair.public_key().as_bytes(), message, &invalid_sig);
         assert!(result.is_err());
     }
 }

@@ -14,9 +14,9 @@
 //! `#[zeroize(skip)]` because the public key is non-secret and must not
 //! be wiped (it can outlive the secret key for verification purposes).
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::path::Path;
-use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 /// Operator's cryptographic identity.
@@ -163,11 +163,17 @@ mod tests {
     fn test_secret_key_zeroizes_on_drop() {
         let id = OperatorIdentity::generate().expect("generate");
         let mut copy: Vec<u8> = id.secret_key.as_slice().to_vec();
-        assert!(copy.iter().any(|&b| b != 0), "secret key should be non-zero before zeroize");
+        assert!(
+            copy.iter().any(|&b| b != 0),
+            "secret key should be non-zero before zeroize"
+        );
 
         // Simulate the drop-path zeroization explicitly on the cloned buffer.
         copy.zeroize();
-        assert!(copy.iter().all(|&b| b == 0), "buffer should be all zeros after zeroize()");
+        assert!(
+            copy.iter().all(|&b| b == 0),
+            "buffer should be all zeros after zeroize()"
+        );
 
         // Sanity: after dropping `id`, the public_id remains computable from a
         // fresh identity — this is just a smoke check that drop doesn't panic.
@@ -194,7 +200,10 @@ mod tests {
         // SAFETY: best-effort read; allocator may have reused. We only
         // assert the original key pattern is gone.
         let leaked: Vec<u8> = unsafe { std::slice::from_raw_parts(raw_ptr, len) }.to_vec();
-        assert_ne!(leaked, original_bytes, "secret key bytes must not survive drop");
+        assert_ne!(
+            leaked, original_bytes,
+            "secret key bytes must not survive drop"
+        );
     }
 
     #[test]

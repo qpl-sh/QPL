@@ -160,7 +160,7 @@ impl TransactionValidator {
     }
 
     /// Validate a transaction without checking the ML-DSA signature.
-    /// 
+    ///
     /// This is useful for internal operations where signature verification
     /// has already been performed or is not applicable (e.g., trace building).
     pub fn validate_transaction_skip_signature(
@@ -591,10 +591,13 @@ mod tests {
 
     impl TestKeypair {
         fn generate() -> Self {
-            let keypair = qpl_crypto::ml_dsa::generate_keypair()
-                .expect("Key generation should succeed");
+            let keypair =
+                qpl_crypto::ml_dsa::generate_keypair().expect("Key generation should succeed");
             let account_id = AccountId::from_public_key(keypair.public_key().as_bytes());
-            Self { keypair, account_id }
+            Self {
+                keypair,
+                account_id,
+            }
         }
 
         fn public_key_bytes(&self) -> Vec<u8> {
@@ -606,7 +609,8 @@ mod tests {
         }
 
         fn sign(&self, message: &[u8]) -> Vec<u8> {
-            self.keypair.sign(message)
+            self.keypair
+                .sign(message)
                 .expect("Signing should succeed")
                 .as_bytes()
                 .to_vec()
@@ -621,7 +625,7 @@ mod tests {
         nonce: u64,
     ) -> Transaction {
         let timestamp = 1234567890u64;
-        
+
         // Build the signing message (same as Transaction::signing_message)
         let mut msg = Vec::new();
         msg.extend_from_slice(sender.account_id().as_bytes());
@@ -629,9 +633,9 @@ mod tests {
         msg.extend_from_slice(&amount.to_le_bytes());
         msg.extend_from_slice(&nonce.to_le_bytes());
         msg.extend_from_slice(&timestamp.to_le_bytes());
-        
+
         let signature = sender.sign(&msg);
-        
+
         Transaction::new_from_public_key(
             sender.public_key_bytes(),
             receiver.clone(),
@@ -772,7 +776,12 @@ mod tests {
         let mut state = funded_state_with_keypairs(&sender, 1000, &receiver, 500);
         let initial_root = state.state_root;
 
-        let txs = vec![create_signed_transaction(&sender, &receiver.account_id(), 100, 0)];
+        let txs = vec![create_signed_transaction(
+            &sender,
+            &receiver.account_id(),
+            100,
+            0,
+        )];
         let result = StateExecutor::execute_batch(&mut state, &txs);
 
         assert_ne!(result.new_state.state_root, initial_root);
@@ -831,7 +840,10 @@ mod tests {
         assert_eq!(result.rejected_count, 0);
 
         let sender_bal = result.new_state.get_account(&sender.account_id()).unwrap();
-        let receiver_bal = result.new_state.get_account(&receiver.account_id()).unwrap();
+        let receiver_bal = result
+            .new_state
+            .get_account(&receiver.account_id())
+            .unwrap();
 
         assert_eq!(sender_bal.balance, 700);
         assert_eq!(sender_bal.nonce, 3);
@@ -846,7 +858,7 @@ mod tests {
         let account1 = TestKeypair::generate();
         let account2 = TestKeypair::generate();
         let account3 = TestKeypair::generate();
-        
+
         let mut state = RollupState::new();
         state.get_or_create_account(&account1.account_id()).balance = 1000;
 
@@ -860,9 +872,18 @@ mod tests {
         assert_eq!(result.applied_count, 2);
         assert_eq!(result.rejected_count, 0);
 
-        let bal1 = result.new_state.get_account(&account1.account_id()).unwrap();
-        let bal2 = result.new_state.get_account(&account2.account_id()).unwrap();
-        let bal3 = result.new_state.get_account(&account3.account_id()).unwrap();
+        let bal1 = result
+            .new_state
+            .get_account(&account1.account_id())
+            .unwrap();
+        let bal2 = result
+            .new_state
+            .get_account(&account2.account_id())
+            .unwrap();
+        let bal3 = result
+            .new_state
+            .get_account(&account3.account_id())
+            .unwrap();
 
         assert_eq!(bal1.balance, 500);
         assert_eq!(bal2.balance, 300);
@@ -883,7 +904,10 @@ mod tests {
 
         impl CdaEngineHook for MockCdaHook {
             fn on_batch_start(&self, batch_height: u64, tx_count: usize) {
-                self.batch_starts.lock().unwrap().push((batch_height, tx_count));
+                self.batch_starts
+                    .lock()
+                    .unwrap()
+                    .push((batch_height, tx_count));
             }
 
             fn on_transaction_settled(
@@ -900,10 +924,10 @@ mod tests {
             }
 
             fn on_batch_complete(&self, result: &BatchResult) {
-                self.batch_completes.lock().unwrap().push((
-                    result.applied_count,
-                    result.rejected_count,
-                ));
+                self.batch_completes
+                    .lock()
+                    .unwrap()
+                    .push((result.applied_count, result.rejected_count));
             }
         }
 
@@ -951,7 +975,8 @@ mod tests {
             new_sender_balance: u64,
             new_receiver_balance: u64,
         ) {
-            self.0.on_transaction_settled(tx, new_sender_balance, new_receiver_balance);
+            self.0
+                .on_transaction_settled(tx, new_sender_balance, new_receiver_balance);
         }
 
         fn on_batch_complete(&self, result: &BatchResult) {
@@ -1020,7 +1045,12 @@ mod tests {
         let mut state = funded_state_with_keypairs(&sender, 1000, &receiver, 500);
         assert_eq!(state.batch_height, 0);
 
-        let txs = vec![create_signed_transaction(&sender, &receiver.account_id(), 100, 0)];
+        let txs = vec![create_signed_transaction(
+            &sender,
+            &receiver.account_id(),
+            100,
+            0,
+        )];
         let result = StateExecutor::execute_batch(&mut state, &txs);
 
         assert_eq!(result.new_state.batch_height, 1);
@@ -1068,7 +1098,12 @@ mod tests {
         let sender = TestKeypair::generate();
         let receiver = TestKeypair::generate();
         let mut state = funded_state_with_keypairs(&sender, 1000, &receiver, 500);
-        let txs = vec![create_signed_transaction(&sender, &receiver.account_id(), 100, 0)];
+        let txs = vec![create_signed_transaction(
+            &sender,
+            &receiver.account_id(),
+            100,
+            0,
+        )];
 
         let result = executor.execute_batch(&mut state, &txs);
         assert_eq!(result.applied_count, 1);
@@ -1153,6 +1188,9 @@ mod tests {
 
         let result = StateExecutor::execute_transaction(&mut state, &tx);
         assert!(matches!(result, Err(ExecutionError::InvalidSignature(_))));
-        assert!(result.unwrap_err().to_string().contains("Public key does not match"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Public key does not match"));
     }
 }

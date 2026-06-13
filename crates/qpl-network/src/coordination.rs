@@ -125,7 +125,9 @@ impl CoordinationRound {
     /// Adds a partial response from an operator. Returns the new round status.
     pub fn add_partial(&mut self, response: PartialResponse) -> Result<RoundStatus, NetworkError> {
         if self.status == RoundStatus::Completed || self.status == RoundStatus::Failed {
-            return Err(NetworkError::RequestAlreadyCompleted(self.request_id.clone()));
+            return Err(NetworkError::RequestAlreadyCompleted(
+                self.request_id.clone(),
+            ));
         }
 
         if self.is_expired() {
@@ -404,13 +406,7 @@ mod tests {
 
     #[test]
     fn test_ordered_payloads() {
-        let mut round = CoordinationRound::new(
-            RequestId::new(),
-            test_operator_id(0),
-            3,
-            5,
-            30,
-        );
+        let mut round = CoordinationRound::new(RequestId::new(), test_operator_id(0), 3, 5, 30);
 
         // Add in non-sequential order
         round
@@ -524,7 +520,10 @@ mod tests {
         let err = mgr
             .start_round(RequestId::new(), test_operator_id(3), 2, 3, 30)
             .unwrap_err();
-        assert!(matches!(err, CoordinationError::TooManyConcurrentRoundsGlobal));
+        assert!(matches!(
+            err,
+            CoordinationError::TooManyConcurrentRoundsGlobal
+        ));
     }
 
     /// (b) Cleanup is triggered automatically once the soft-threshold is
@@ -569,8 +568,10 @@ mod tests {
 
         let r1 = RequestId::new();
         let r2 = RequestId::new();
-        mgr.start_round(r1.clone(), coord.clone(), 2, 3, 30).unwrap();
-        mgr.start_round(r2.clone(), coord.clone(), 2, 3, 30).unwrap();
+        mgr.start_round(r1.clone(), coord.clone(), 2, 3, 30)
+            .unwrap();
+        mgr.start_round(r2.clone(), coord.clone(), 2, 3, 30)
+            .unwrap();
         assert_eq!(mgr.rounds_for(&coord), 2);
 
         // Backdate r1 and mark completed so it is eligible for eviction.
@@ -583,7 +584,10 @@ mod tests {
         mgr.cleanup_old_rounds(60);
 
         assert!(mgr.get_round(&r1).is_none(), "old round was not evicted");
-        assert!(mgr.get_round(&r2).is_some(), "fresh round was incorrectly evicted");
+        assert!(
+            mgr.get_round(&r2).is_some(),
+            "fresh round was incorrectly evicted"
+        );
         assert_eq!(
             mgr.rounds_for(&coord),
             1,

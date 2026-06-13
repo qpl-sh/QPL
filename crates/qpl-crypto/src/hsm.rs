@@ -100,18 +100,15 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 // Re-exports from ml_dsa for convenience
 pub use crate::ml_dsa::{
     MlDsaError, MlDsaKeyPair, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature,
-    PUBLIC_KEY_LENGTH as ML_DSA_PUBLIC_KEY_LENGTH,
-    SECRET_KEY_LENGTH as ML_DSA_SECRET_KEY_LENGTH,
+    PUBLIC_KEY_LENGTH as ML_DSA_PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH as ML_DSA_SECRET_KEY_LENGTH,
     SIGNATURE_LENGTH as ML_DSA_SIGNATURE_LENGTH,
 };
 
 // Re-exports from ml_kem for convenience
 pub use crate::ml_kem::{
     MlKemCiphertext, MlKemError, MlKemKeyPair, MlKemPublicKey, MlKemSecretKey, SharedSecret,
-    CIPHERTEXT_BYTES as ML_KEM_CIPHERTEXT_BYTES,
-    PUBLIC_KEY_BYTES as ML_KEM_PUBLIC_KEY_BYTES,
-    SECRET_KEY_BYTES as ML_KEM_SECRET_KEY_BYTES,
-    SHARED_SECRET_BYTES as ML_KEM_SHARED_SECRET_BYTES,
+    CIPHERTEXT_BYTES as ML_KEM_CIPHERTEXT_BYTES, PUBLIC_KEY_BYTES as ML_KEM_PUBLIC_KEY_BYTES,
+    SECRET_KEY_BYTES as ML_KEM_SECRET_KEY_BYTES, SHARED_SECRET_BYTES as ML_KEM_SHARED_SECRET_BYTES,
 };
 
 /// Errors that can occur during HSM operations.
@@ -684,20 +681,23 @@ impl HsmProvider for SoftHsmProvider {
             StoredKey::MlKem(key) => {
                 let public_key = crate::ml_kem::MlKemPublicKey::from_bytes(&key.public_key_bytes)
                     .map_err(|e| {
-                        HsmError::EncapsulationFailed(format!("Invalid public key: {}", e))
-                    })?;
+                    HsmError::EncapsulationFailed(format!("Invalid public key: {}", e))
+                })?;
 
-                crate::ml_kem::encapsulate(&public_key)
-                    .map_err(|e| HsmError::EncapsulationFailed(format!("Encapsulation error: {}", e)))
+                crate::ml_kem::encapsulate(&public_key).map_err(|e| {
+                    HsmError::EncapsulationFailed(format!("Encapsulation error: {}", e))
+                })
             }
             StoredKey::MlDsa(_) => Err(HsmError::EncapsulationFailed(format!(
                 "Key {} is an ML-DSA key, not ML-KEM",
                 handle.id()
             ))),
-            StoredKey::Ed25519(_) | StoredKey::EcdsaP256(_) => Err(HsmError::EncapsulationFailed(format!(
-                "Key {} is a classical signing key, not an ML-KEM key",
-                handle.id()
-            ))),
+            StoredKey::Ed25519(_) | StoredKey::EcdsaP256(_) => {
+                Err(HsmError::EncapsulationFailed(format!(
+                    "Key {} is a classical signing key, not an ML-KEM key",
+                    handle.id()
+                )))
+            }
         }
     }
 
@@ -726,8 +726,8 @@ impl HsmProvider for SoftHsmProvider {
             StoredKey::MlKem(key) => {
                 let secret_key = crate::ml_kem::MlKemSecretKey::from_bytes(&key.secret_key_bytes)
                     .map_err(|e| {
-                        HsmError::DecapsulationFailed(format!("Invalid secret key: {}", e))
-                    })?;
+                    HsmError::DecapsulationFailed(format!("Invalid secret key: {}", e))
+                })?;
 
                 crate::ml_kem::decapsulate(ciphertext, &secret_key).map_err(|e| {
                     HsmError::DecapsulationFailed(format!("Decapsulation error: {}", e))
@@ -737,10 +737,12 @@ impl HsmProvider for SoftHsmProvider {
                 "Key {} is an ML-DSA key, not ML-KEM",
                 handle.id()
             ))),
-            StoredKey::Ed25519(_) | StoredKey::EcdsaP256(_) => Err(HsmError::DecapsulationFailed(format!(
-                "Key {} is a classical signing key, not an ML-KEM key",
-                handle.id()
-            ))),
+            StoredKey::Ed25519(_) | StoredKey::EcdsaP256(_) => {
+                Err(HsmError::DecapsulationFailed(format!(
+                    "Key {} is a classical signing key, not an ML-KEM key",
+                    handle.id()
+                )))
+            }
         }
     }
 
@@ -786,9 +788,10 @@ impl HsmProvider for SoftHsmProvider {
                 let key_id = self.generate_key_id();
                 let handle = KeyHandle::new(key_id.clone(), KeyType::Ed25519);
                 {
-                    let mut keys = self.keys.write().map_err(|_| {
-                        HsmError::ProviderError("Lock poisoned".to_string())
-                    })?;
+                    let mut keys = self
+                        .keys
+                        .write()
+                        .map_err(|_| HsmError::ProviderError("Lock poisoned".to_string()))?;
                     keys.insert(key_id, StoredKey::Ed25519(stored));
                 }
                 Ok(handle)
@@ -800,10 +803,7 @@ impl HsmProvider for SoftHsmProvider {
                 use rand_core::OsRng;
                 let signing_key = SigningKey::random(&mut OsRng);
                 let verifying_key = signing_key.verifying_key();
-                let pk_compressed = verifying_key
-                    .to_encoded_point(true)
-                    .as_bytes()
-                    .to_vec();
+                let pk_compressed = verifying_key.to_encoded_point(true).as_bytes().to_vec();
                 let sk_bytes = signing_key.to_bytes().to_vec();
                 let stored = StoredEcdsaP256Key {
                     public_key_bytes: pk_compressed,
@@ -812,9 +812,10 @@ impl HsmProvider for SoftHsmProvider {
                 let key_id = self.generate_key_id();
                 let handle = KeyHandle::new(key_id.clone(), KeyType::EcdsaP256);
                 {
-                    let mut keys = self.keys.write().map_err(|_| {
-                        HsmError::ProviderError("Lock poisoned".to_string())
-                    })?;
+                    let mut keys = self
+                        .keys
+                        .write()
+                        .map_err(|_| HsmError::ProviderError("Lock poisoned".to_string()))?;
                     keys.insert(key_id, StoredKey::EcdsaP256(stored));
                 }
                 Ok(handle)
@@ -845,9 +846,10 @@ impl HsmProvider for SoftHsmProvider {
             }
             StoredKey::Ed25519(key) => {
                 use ed25519_dalek::{Signer, SigningKey};
-                let sk_arr: [u8; 32] = key.secret_key_bytes.as_slice().try_into().map_err(|_| {
-                    HsmError::SigningFailed("Ed25519 secret key wrong length".to_string())
-                })?;
+                let sk_arr: [u8; 32] =
+                    key.secret_key_bytes.as_slice().try_into().map_err(|_| {
+                        HsmError::SigningFailed("Ed25519 secret key wrong length".to_string())
+                    })?;
                 let signing_key = SigningKey::from_bytes(&sk_arr);
                 let sig = signing_key.sign(message);
                 AgileSignature::new(SignatureAlgorithm::Ed25519, sig.to_bytes().to_vec())
@@ -913,10 +915,9 @@ impl HsmProvider for SoftHsmProvider {
                 let verifying_key = VerifyingKey::from_bytes(&pk_arr).map_err(|e| {
                     HsmError::VerificationFailed(format!("Invalid Ed25519 public key: {}", e))
                 })?;
-                let sig_arr: [u8; 64] =
-                    signature.bytes.as_slice().try_into().map_err(|_| {
-                        HsmError::VerificationFailed("Ed25519 signature wrong length".to_string())
-                    })?;
+                let sig_arr: [u8; 64] = signature.bytes.as_slice().try_into().map_err(|_| {
+                    HsmError::VerificationFailed("Ed25519 signature wrong length".to_string())
+                })?;
                 let sig = EdSignature::from_bytes(&sig_arr);
                 Ok(verifying_key.verify(message, &sig).is_ok())
             }
@@ -958,11 +959,10 @@ impl HsmProvider for SoftHsmProvider {
                 AgilePublicKey::new(SignatureAlgorithm::Ed25519, key.public_key_bytes.clone())
                     .map_err(|e| HsmError::ProviderError(e.to_string()))
             }
-            StoredKey::EcdsaP256(key) => AgilePublicKey::new(
-                SignatureAlgorithm::EcdsaP256,
-                key.public_key_bytes.clone(),
-            )
-            .map_err(|e| HsmError::ProviderError(e.to_string())),
+            StoredKey::EcdsaP256(key) => {
+                AgilePublicKey::new(SignatureAlgorithm::EcdsaP256, key.public_key_bytes.clone())
+                    .map_err(|e| HsmError::ProviderError(e.to_string()))
+            }
             StoredKey::MlKem(_) => Err(HsmError::ProviderError(format!(
                 "Key {} is an ML-KEM key — not a signing key",
                 handle.id()
@@ -996,9 +996,7 @@ mod pkcs11_provider {
     /// DER-encoded ASN.1 OID for the secp256r1 / NIST P-256 curve
     /// (`1.2.840.10045.3.1.7`). Used as the `CKA_EC_PARAMS` attribute when
     /// generating an ECDSA-P256 keypair.
-    const P256_OID_DER: &[u8] = &[
-        0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07,
-    ];
+    const P256_OID_DER: &[u8] = &[0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07];
 
     /// Wrapper to make Session Send-safe.
     ///
@@ -1096,7 +1094,10 @@ mod pkcs11_provider {
         pub fn new(library_path: &str, slot_index: usize, pin: &str) -> Result<Self, HsmError> {
             // Load PKCS#11 library
             let pkcs11 = Pkcs11::new(library_path).map_err(|e| {
-                HsmError::ProviderError(format!("Failed to load PKCS#11 library '{}': {:?}", library_path, e))
+                HsmError::ProviderError(format!(
+                    "Failed to load PKCS#11 library '{}': {:?}",
+                    library_path, e
+                ))
             })?;
 
             // Initialize with OS-level thread locking
@@ -1180,7 +1181,10 @@ mod pkcs11_provider {
             session
                 .generate_key(&Mechanism::AesKeyGen, &gen_template)
                 .map_err(|e| {
-                    HsmError::ProviderError(format!("Failed to generate master wrapping key: {:?}", e))
+                    HsmError::ProviderError(format!(
+                        "Failed to generate master wrapping key: {:?}",
+                        e
+                    ))
                 })
         }
 
@@ -1198,14 +1202,16 @@ mod pkcs11_provider {
         ///
         /// Returns `[IV (16 bytes) || ciphertext]`.
         fn wrap_key_material(&self, plaintext: &[u8]) -> Result<Vec<u8>, HsmError> {
-            let session_guard = self.session.lock().map_err(|_| {
-                HsmError::ProviderError("Session lock poisoned".to_string())
-            })?;
+            let session_guard = self
+                .session
+                .lock()
+                .map_err(|_| HsmError::ProviderError("Session lock poisoned".to_string()))?;
 
             // Generate a random 16-byte IV inside the HSM
-            let iv_vec = session_guard.0.generate_random_vec(16).map_err(|e| {
-                HsmError::ProviderError(format!("Failed to generate IV: {:?}", e))
-            })?;
+            let iv_vec = session_guard
+                .0
+                .generate_random_vec(16)
+                .map_err(|e| HsmError::ProviderError(format!("Failed to generate IV: {:?}", e)))?;
             let iv: [u8; 16] = iv_vec.try_into().map_err(|_| {
                 HsmError::ProviderError("IV generation returned unexpected length".to_string())
             })?;
@@ -1244,13 +1250,14 @@ mod pkcs11_provider {
                 ));
             }
 
-            let iv: [u8; 16] = wrapped[..16].try_into().map_err(|_| {
-                HsmError::ProviderError("IV extraction failed".to_string())
-            })?;
+            let iv: [u8; 16] = wrapped[..16]
+                .try_into()
+                .map_err(|_| HsmError::ProviderError("IV extraction failed".to_string()))?;
 
-            let session_guard = self.session.lock().map_err(|_| {
-                HsmError::ProviderError("Session lock poisoned".to_string())
-            })?;
+            let session_guard = self
+                .session
+                .lock()
+                .map_err(|_| HsmError::ProviderError("Session lock poisoned".to_string()))?;
 
             session_guard
                 .0
@@ -1270,20 +1277,25 @@ mod pkcs11_provider {
                 Attribute::Value(data.to_vec()),
             ];
 
-            let session_guard = self.session.lock().map_err(|_| {
-                HsmError::ProviderError("Session lock poisoned".to_string())
-            })?;
+            let session_guard = self
+                .session
+                .lock()
+                .map_err(|_| HsmError::ProviderError("Session lock poisoned".to_string()))?;
 
             session_guard.0.create_object(&template).map_err(|e| {
-                HsmError::ProviderError(format!("Failed to create data object '{}': {:?}", label, e))
+                HsmError::ProviderError(format!(
+                    "Failed to create data object '{}': {:?}",
+                    label, e
+                ))
             })
         }
 
         /// Retrieves the `CKA_VALUE` of a `CKO_DATA` object from the HSM.
         fn retrieve_data_object(&self, handle: ObjectHandle) -> Result<Vec<u8>, HsmError> {
-            let session_guard = self.session.lock().map_err(|_| {
-                HsmError::ProviderError("Session lock poisoned".to_string())
-            })?;
+            let session_guard = self
+                .session
+                .lock()
+                .map_err(|_| HsmError::ProviderError("Session lock poisoned".to_string()))?;
 
             let attrs = session_guard
                 .0
@@ -1337,17 +1349,15 @@ mod pkcs11_provider {
         /// Reads `CKA_EC_POINT` from a public-key object handle and returns
         /// the raw point bytes (DER OCTET STRING wrapper stripped).
         fn read_ec_point(&self, public_object: ObjectHandle) -> Result<Vec<u8>, HsmError> {
-            let session_guard = self.session.lock().map_err(|_| {
-                HsmError::ProviderError("Session lock poisoned".to_string())
-            })?;
+            let session_guard = self
+                .session
+                .lock()
+                .map_err(|_| HsmError::ProviderError("Session lock poisoned".to_string()))?;
             let attrs = session_guard
                 .0
                 .get_attributes(public_object, &[AttributeType::EcPoint])
                 .map_err(|e| {
-                    HsmError::ProviderError(format!(
-                        "Failed to read CKA_EC_POINT: {:?}",
-                        e
-                    ))
+                    HsmError::ProviderError(format!("Failed to read CKA_EC_POINT: {:?}", e))
                 })?;
             for attr in attrs {
                 if let Attribute::EcPoint(der) = attr {
@@ -1390,9 +1400,10 @@ mod pkcs11_provider {
             ];
 
             let (pub_handle, priv_handle) = {
-                let session_guard = self.session.lock().map_err(|_| {
-                    HsmError::ProviderError("Session lock poisoned".to_string())
-                })?;
+                let session_guard = self
+                    .session
+                    .lock()
+                    .map_err(|_| HsmError::ProviderError("Session lock poisoned".to_string()))?;
                 session_guard
                     .0
                     .generate_key_pair(
@@ -1418,9 +1429,10 @@ mod pkcs11_provider {
             }
 
             {
-                let mut map = self.key_map.write().map_err(|_| {
-                    HsmError::ProviderError("Key map lock poisoned".to_string())
-                })?;
+                let mut map = self
+                    .key_map
+                    .write()
+                    .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
                 map.insert(
                     key_id.clone(),
                     Pkcs11KeyEntry {
@@ -1465,16 +1477,13 @@ mod pkcs11_provider {
             ];
 
             let (pub_handle, priv_handle) = {
-                let session_guard = self.session.lock().map_err(|_| {
-                    HsmError::ProviderError("Session lock poisoned".to_string())
-                })?;
+                let session_guard = self
+                    .session
+                    .lock()
+                    .map_err(|_| HsmError::ProviderError("Session lock poisoned".to_string()))?;
                 session_guard
                     .0
-                    .generate_key_pair(
-                        &Mechanism::EccKeyPairGen,
-                        &pub_template,
-                        &priv_template,
-                    )
+                    .generate_key_pair(&Mechanism::EccKeyPairGen, &pub_template, &priv_template)
                     .map_err(|e| {
                         HsmError::KeyGenerationFailed(format!(
                             "P-256 C_GenerateKeyPair failed: {:?}",
@@ -1495,9 +1504,10 @@ mod pkcs11_provider {
             let pk_compressed = verifying_key.to_encoded_point(true).as_bytes().to_vec();
 
             {
-                let mut map = self.key_map.write().map_err(|_| {
-                    HsmError::ProviderError("Key map lock poisoned".to_string())
-                })?;
+                let mut map = self
+                    .key_map
+                    .write()
+                    .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
                 map.insert(
                     key_id.clone(),
                     Pkcs11KeyEntry {
@@ -1516,9 +1526,10 @@ mod pkcs11_provider {
         /// cached public bytes if present. Releases the read lock before
         /// returning so callers can re-acquire other locks.
         fn lookup_entry(&self, id: &str) -> Result<LookupEntry, HsmError> {
-            let map = self.key_map.read().map_err(|_| {
-                HsmError::ProviderError("Key map lock poisoned".to_string())
-            })?;
+            let map = self
+                .key_map
+                .read()
+                .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
             let entry = map
                 .get(id)
                 .ok_or_else(|| HsmError::KeyNotFound(id.to_string()))?;
@@ -1563,9 +1574,10 @@ mod pkcs11_provider {
 
             // Register in key map
             {
-                let mut map = self.key_map.write().map_err(|_| {
-                    HsmError::ProviderError("Key map lock poisoned".to_string())
-                })?;
+                let mut map = self
+                    .key_map
+                    .write()
+                    .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
                 map.insert(
                     key_id.clone(),
                     Pkcs11KeyEntry {
@@ -1593,9 +1605,10 @@ mod pkcs11_provider {
             }
 
             let priv_object = {
-                let map = self.key_map.read().map_err(|_| {
-                    HsmError::ProviderError("Key map lock poisoned".to_string())
-                })?;
+                let map = self
+                    .key_map
+                    .read()
+                    .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
                 let entry = map
                     .get(handle.id())
                     .ok_or_else(|| HsmError::KeyNotFound(handle.id().to_string()))?;
@@ -1624,8 +1637,10 @@ mod pkcs11_provider {
             // returns, regardless of success or failure.
             // Sign in software, then zeroize
             let result = (|| -> Result<crate::ml_dsa::MlDsaSignature, HsmError> {
-                let sk = pqcrypto_mldsa::mldsa65::SecretKey::from_bytes(&sk_bytes)
-                    .map_err(|e| HsmError::SigningFailed(format!("Failed to parse secret key: {:?}", e)))?;
+                let sk =
+                    pqcrypto_mldsa::mldsa65::SecretKey::from_bytes(&sk_bytes).map_err(|e| {
+                        HsmError::SigningFailed(format!("Failed to parse secret key: {:?}", e))
+                    })?;
 
                 let sig = pqcrypto_mldsa::mldsa65::detached_sign(message, &sk);
 
@@ -1651,9 +1666,10 @@ mod pkcs11_provider {
             }
 
             let pub_object = {
-                let map = self.key_map.read().map_err(|_| {
-                    HsmError::ProviderError("Key map lock poisoned".to_string())
-                })?;
+                let map = self
+                    .key_map
+                    .read()
+                    .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
                 let entry = map
                     .get(handle.id())
                     .ok_or_else(|| HsmError::KeyNotFound(handle.id().to_string()))?;
@@ -1669,9 +1685,8 @@ mod pkcs11_provider {
             // Retrieve public key from HSM (plaintext)
             let pk_bytes = self.retrieve_data_object(pub_object)?;
 
-            let public_key = crate::ml_dsa::MlDsaPublicKey::from_bytes(&pk_bytes).map_err(|e| {
-                HsmError::VerificationFailed(format!("Invalid public key: {}", e))
-            })?;
+            let public_key = crate::ml_dsa::MlDsaPublicKey::from_bytes(&pk_bytes)
+                .map_err(|e| HsmError::VerificationFailed(format!("Invalid public key: {}", e)))?;
 
             crate::ml_dsa::verify(&public_key, message, signature)
                 .map_err(|e| HsmError::VerificationFailed(format!("Verification error: {}", e)))
@@ -1701,9 +1716,10 @@ mod pkcs11_provider {
 
             // Register in key map
             {
-                let mut map = self.key_map.write().map_err(|_| {
-                    HsmError::ProviderError("Key map lock poisoned".to_string())
-                })?;
+                let mut map = self
+                    .key_map
+                    .write()
+                    .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
                 map.insert(
                     key_id.clone(),
                     Pkcs11KeyEntry {
@@ -1721,7 +1737,8 @@ mod pkcs11_provider {
         async fn encapsulate(
             &self,
             handle: &KeyHandle,
-        ) -> Result<(crate::ml_kem::MlKemCiphertext, crate::ml_kem::SharedSecret), HsmError> {
+        ) -> Result<(crate::ml_kem::MlKemCiphertext, crate::ml_kem::SharedSecret), HsmError>
+        {
             if handle.key_type() != KeyType::MlKem {
                 return Err(HsmError::EncapsulationFailed(format!(
                     "Key {} is not an ML-KEM key",
@@ -1730,9 +1747,10 @@ mod pkcs11_provider {
             }
 
             let pub_object = {
-                let map = self.key_map.read().map_err(|_| {
-                    HsmError::ProviderError("Key map lock poisoned".to_string())
-                })?;
+                let map = self
+                    .key_map
+                    .read()
+                    .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
                 let entry = map
                     .get(handle.id())
                     .ok_or_else(|| HsmError::KeyNotFound(handle.id().to_string()))?;
@@ -1747,9 +1765,8 @@ mod pkcs11_provider {
 
             let pk_bytes = self.retrieve_data_object(pub_object)?;
 
-            let public_key = crate::ml_kem::MlKemPublicKey::from_bytes(&pk_bytes).map_err(|e| {
-                HsmError::EncapsulationFailed(format!("Invalid public key: {}", e))
-            })?;
+            let public_key = crate::ml_kem::MlKemPublicKey::from_bytes(&pk_bytes)
+                .map_err(|e| HsmError::EncapsulationFailed(format!("Invalid public key: {}", e)))?;
 
             crate::ml_kem::encapsulate(&public_key)
                 .map_err(|e| HsmError::EncapsulationFailed(format!("Encapsulation error: {}", e)))
@@ -1768,9 +1785,10 @@ mod pkcs11_provider {
             }
 
             let priv_object = {
-                let map = self.key_map.read().map_err(|_| {
-                    HsmError::ProviderError("Key map lock poisoned".to_string())
-                })?;
+                let map = self
+                    .key_map
+                    .read()
+                    .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
                 let entry = map
                     .get(handle.id())
                     .ok_or_else(|| HsmError::KeyNotFound(handle.id().to_string()))?;
@@ -1788,12 +1806,14 @@ mod pkcs11_provider {
             let mut sk_bytes = self.unwrap_key_material(&wrapped)?;
 
             let result = (|| -> Result<crate::ml_kem::SharedSecret, HsmError> {
-                let secret_key = crate::ml_kem::MlKemSecretKey::from_bytes(&sk_bytes).map_err(|e| {
-                    HsmError::DecapsulationFailed(format!("Invalid secret key: {}", e))
-                })?;
+                let secret_key =
+                    crate::ml_kem::MlKemSecretKey::from_bytes(&sk_bytes).map_err(|e| {
+                        HsmError::DecapsulationFailed(format!("Invalid secret key: {}", e))
+                    })?;
 
-                crate::ml_kem::decapsulate(ciphertext, &secret_key)
-                    .map_err(|e| HsmError::DecapsulationFailed(format!("Decapsulation error: {}", e)))
+                crate::ml_kem::decapsulate(ciphertext, &secret_key).map_err(|e| {
+                    HsmError::DecapsulationFailed(format!("Decapsulation error: {}", e))
+                })
             })();
 
             sk_bytes.zeroize();
@@ -1802,16 +1822,18 @@ mod pkcs11_provider {
 
         async fn delete_key(&self, handle: &KeyHandle) -> Result<(), HsmError> {
             let entry = {
-                let mut map = self.key_map.write().map_err(|_| {
-                    HsmError::ProviderError("Key map lock poisoned".to_string())
-                })?;
+                let mut map = self
+                    .key_map
+                    .write()
+                    .map_err(|_| HsmError::ProviderError("Key map lock poisoned".to_string()))?;
                 map.remove(handle.id())
                     .ok_or_else(|| HsmError::KeyNotFound(handle.id().to_string()))?
             };
 
-            let session_guard = self.session.lock().map_err(|_| {
-                HsmError::ProviderError("Session lock poisoned".to_string())
-            })?;
+            let session_guard = self
+                .session
+                .lock()
+                .map_err(|_| HsmError::ProviderError("Session lock poisoned".to_string()))?;
 
             // Destroy both the public and private data objects in the HSM
             session_guard
@@ -1825,7 +1847,10 @@ mod pkcs11_provider {
                 .0
                 .destroy_object(entry.private_object)
                 .map_err(|e| {
-                    HsmError::ProviderError(format!("Failed to destroy private key object: {:?}", e))
+                    HsmError::ProviderError(format!(
+                        "Failed to destroy private key object: {:?}",
+                        e
+                    ))
                 })?;
 
             Ok(())
@@ -1940,10 +1965,7 @@ mod pkcs11_provider {
             signature: &crate::algorithm::AgileSignature,
         ) -> Result<bool, HsmError> {
             let key_alg = handle.key_type().as_signature_algorithm().ok_or_else(|| {
-                HsmError::VerificationFailed(format!(
-                    "Key {} is not a signing key",
-                    handle.id()
-                ))
+                HsmError::VerificationFailed(format!("Key {} is not a signing key", handle.id()))
             })?;
             if key_alg != signature.algorithm {
                 return Err(HsmError::VerificationFailed(format!(
@@ -1968,23 +1990,16 @@ mod pkcs11_provider {
                     self.verify(handle, message, &ml_sig).await
                 }
                 KeyType::Ed25519 => {
-                    use ed25519_dalek::{
-                        Signature as EdSignature, Verifier, VerifyingKey,
-                    };
+                    use ed25519_dalek::{Signature as EdSignature, Verifier, VerifyingKey};
                     let pk_bytes = match cached_pk {
                         Some(b) => b,
                         None => self.read_ec_point(pub_obj)?,
                     };
                     let pk_arr: [u8; 32] = pk_bytes.as_slice().try_into().map_err(|_| {
-                        HsmError::VerificationFailed(
-                            "Ed25519 public key wrong length".to_string(),
-                        )
+                        HsmError::VerificationFailed("Ed25519 public key wrong length".to_string())
                     })?;
                     let verifying_key = VerifyingKey::from_bytes(&pk_arr).map_err(|e| {
-                        HsmError::VerificationFailed(format!(
-                            "Invalid Ed25519 public key: {}",
-                            e
-                        ))
+                        HsmError::VerificationFailed(format!("Invalid Ed25519 public key: {}", e))
                     })?;
                     let sig_arr: [u8; 64] =
                         signature.bytes.as_slice().try_into().map_err(|_| {
@@ -2002,28 +2017,20 @@ mod pkcs11_provider {
                         None => {
                             // Re-encode SEC1 compressed for downstream consumers.
                             let raw = self.read_ec_point(pub_obj)?;
-                            let vk =
-                                VerifyingKey::from_sec1_bytes(&raw).map_err(|e| {
-                                    HsmError::VerificationFailed(format!(
-                                        "Invalid P-256 public key from HSM: {}",
-                                        e
-                                    ))
-                                })?;
+                            let vk = VerifyingKey::from_sec1_bytes(&raw).map_err(|e| {
+                                HsmError::VerificationFailed(format!(
+                                    "Invalid P-256 public key from HSM: {}",
+                                    e
+                                ))
+                            })?;
                             vk.to_encoded_point(true).as_bytes().to_vec()
                         }
                     };
-                    let verifying_key =
-                        VerifyingKey::from_sec1_bytes(&pk_bytes).map_err(|e| {
-                            HsmError::VerificationFailed(format!(
-                                "Invalid P-256 public key: {}",
-                                e
-                            ))
-                        })?;
+                    let verifying_key = VerifyingKey::from_sec1_bytes(&pk_bytes).map_err(|e| {
+                        HsmError::VerificationFailed(format!("Invalid P-256 public key: {}", e))
+                    })?;
                     let sig = Signature::from_slice(&signature.bytes).map_err(|e| {
-                        HsmError::VerificationFailed(format!(
-                            "Invalid P-256 signature: {}",
-                            e
-                        ))
+                        HsmError::VerificationFailed(format!("Invalid P-256 signature: {}", e))
                     })?;
                     Ok(verifying_key.verify(message, &sig).is_ok())
                 }
@@ -2065,13 +2072,12 @@ mod pkcs11_provider {
                         None => {
                             let raw = self.read_ec_point(pub_obj)?;
                             let vk =
-                                p256::ecdsa::VerifyingKey::from_sec1_bytes(&raw)
-                                    .map_err(|e| {
-                                        HsmError::ProviderError(format!(
-                                            "Invalid P-256 public key: {}",
-                                            e
-                                        ))
-                                    })?;
+                                p256::ecdsa::VerifyingKey::from_sec1_bytes(&raw).map_err(|e| {
+                                    HsmError::ProviderError(format!(
+                                        "Invalid P-256 public key: {}",
+                                        e
+                                    ))
+                                })?;
                             vk.to_encoded_point(true).as_bytes().to_vec()
                         }
                     };
@@ -2154,7 +2160,8 @@ impl ThalesHsmProvider {
         // 5. Authenticate with the HSM (login with partition password)
         // 6. Store session and context for later use
         Err(HsmError::ProviderError(
-            "Thales Luna HSM integration not yet implemented. Use SoftHsmProvider for development.".to_string(),
+            "Thales Luna HSM integration not yet implemented. Use SoftHsmProvider for development."
+                .to_string(),
         ))
     }
 }
@@ -2223,7 +2230,10 @@ mod tests {
             .await
             .expect("Verification should succeed");
 
-        assert!(!is_valid, "Signature should be invalid for tampered message");
+        assert!(
+            !is_valid,
+            "Signature should be invalid for tampered message"
+        );
     }
 
     #[tokio::test]
@@ -2573,7 +2583,10 @@ mod tests {
         assert_eq!(sig.algorithm, SignatureAlgorithm::Ed25519);
         assert_eq!(sig.bytes.len(), 64);
 
-        let valid = hsm.verify_agile(&handle, message, &sig).await.expect("verify");
+        let valid = hsm
+            .verify_agile(&handle, message, &sig)
+            .await
+            .expect("verify");
         assert!(valid);
     }
 
@@ -2605,7 +2618,10 @@ mod tests {
         assert_eq!(sig.algorithm, SignatureAlgorithm::EcdsaP256);
         assert_eq!(sig.bytes.len(), 64);
 
-        let valid = hsm.verify_agile(&handle, message, &sig).await.expect("verify");
+        let valid = hsm
+            .verify_agile(&handle, message, &sig)
+            .await
+            .expect("verify");
         assert!(valid);
     }
 
@@ -2636,7 +2652,10 @@ mod tests {
         let sig = hsm.sign_agile(&handle, message).await.expect("sign");
         assert_eq!(sig.algorithm, SignatureAlgorithm::MlDsa65);
 
-        let valid = hsm.verify_agile(&handle, message, &sig).await.expect("verify");
+        let valid = hsm
+            .verify_agile(&handle, message, &sig)
+            .await
+            .expect("verify");
         assert!(valid);
     }
 

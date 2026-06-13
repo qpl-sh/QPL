@@ -76,7 +76,10 @@ impl WireError {
 ///
 /// `internal_detail` is logged at `error!` level server-side but is
 /// **not** placed on the wire.
-pub fn sanitized_error_response(code: ErrorCode, internal_detail: impl std::fmt::Display) -> String {
+pub fn sanitized_error_response(
+    code: ErrorCode,
+    internal_detail: impl std::fmt::Display,
+) -> String {
     tracing::error!(
         code = code.code(),
         public_message = code.public_message(),

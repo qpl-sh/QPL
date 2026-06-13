@@ -4,12 +4,9 @@
 #  - non-root runtime user                     (D-8 implemented below)
 #  - VOLUME for TLS material                   (D-1 wiring)
 #  - HEALTHCHECK over TLS                      (D-1 wiring)
-#  - TODO(D-7): pin base image to digest hash:
-#      FROM rust:1.78-slim@sha256:<digest> as builder
-#      FROM debian:bookworm-slim@sha256:<digest>
-#    Skipped here so digests can be refreshed by the release pipeline.
+#  - Base images pinned to digest hashes       (D-7 implemented below)
 
-FROM rust:1.78-slim as builder
+FROM rust:1.78-slim@sha256:0fea967628dc796a2b9d1d57ddb3af3b3f0a35b6c8c0e23690dbe0ceb71a2dc9 as builder
 
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 
@@ -18,12 +15,7 @@ WORKDIR /build
 # Copy workspace manifests first for caching
 COPY Cargo.toml Cargo.lock ./
 COPY crates/qpl-crypto/Cargo.toml crates/qpl-crypto/
-COPY crates/qpl-governance/Cargo.toml crates/qpl-governance/
 COPY crates/qpl-stark-rollup/Cargo.toml crates/qpl-stark-rollup/
-COPY crates/qpl-custody/Cargo.toml crates/qpl-custody/
-COPY crates/qpl-yield/Cargo.toml crates/qpl-yield/
-COPY crates/qpl-rwa/Cargo.toml crates/qpl-rwa/
-COPY crates/qpl-programmable/Cargo.toml crates/qpl-programmable/
 COPY crates/qpl-network/Cargo.toml crates/qpl-network/
 COPY crates/qpl-sdk/Cargo.toml crates/qpl-sdk/
 COPY crates/common/types/Cargo.toml crates/common/types/
@@ -33,12 +25,7 @@ COPY tests/e2e/Cargo.toml tests/e2e/
 
 # Create dummy source files for dependency caching
 RUN mkdir -p crates/qpl-crypto/src && echo "" > crates/qpl-crypto/src/lib.rs && \
-    mkdir -p crates/qpl-governance/src && echo "" > crates/qpl-governance/src/lib.rs && \
     mkdir -p crates/qpl-stark-rollup/src && echo "" > crates/qpl-stark-rollup/src/lib.rs && \
-    mkdir -p crates/qpl-custody/src && echo "" > crates/qpl-custody/src/lib.rs && \
-    mkdir -p crates/qpl-yield/src && echo "" > crates/qpl-yield/src/lib.rs && \
-    mkdir -p crates/qpl-rwa/src && echo "" > crates/qpl-rwa/src/lib.rs && \
-    mkdir -p crates/qpl-programmable/src && echo "" > crates/qpl-programmable/src/lib.rs && \
     mkdir -p crates/qpl-network/src && echo "" > crates/qpl-network/src/lib.rs && \
     mkdir -p crates/qpl-sdk/src && echo "" > crates/qpl-sdk/src/lib.rs && \
     mkdir -p crates/common/types/src && echo "" > crates/common/types/src/lib.rs && \
@@ -58,7 +45,7 @@ COPY proto/ proto/
 RUN cargo build --release -p qpl-node
 
 # ─── Runtime image ──────────────────────────────────────────────────────
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:96e378d7e6531ac9a15ad505478fcc2e69f371b10f5cdf87857c4b8188404716
 
 # wget is needed for the TLS HEALTHCHECK below.
 RUN apt-get update \
@@ -72,6 +59,7 @@ RUN groupadd --system --gid 1000 qpl \
     && useradd  --system --uid 1000 --gid qpl --home-dir /qpl --shell /sbin/nologin qpl
 
 COPY --from=builder /build/target/release/qpl-node /usr/local/bin/qpl-node
+COPY --from=builder /build/services/qpl-node/qpl-node.toml /qpl/qpl-node.toml
 
 # Default config + data + TLS material locations.
 WORKDIR /qpl

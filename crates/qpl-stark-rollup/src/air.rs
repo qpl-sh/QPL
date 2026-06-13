@@ -224,12 +224,12 @@ impl Air for SettlementAir {
 /// Create default proof options suitable for settlement proofs
 pub fn default_proof_options() -> ProofOptions {
     ProofOptions::new(
-        32,  // num_queries
-        8,   // blowup_factor
-        0,   // grinding_factor
+        32, // num_queries
+        8,  // blowup_factor
+        0,  // grinding_factor
         winterfell::FieldExtension::None,
-        8,   // fri_folding_factor
-        31,  // fri_max_remainder_degree
+        8,  // fri_folding_factor
+        31, // fri_max_remainder_degree
     )
 }
 

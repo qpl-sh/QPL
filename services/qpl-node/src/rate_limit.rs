@@ -44,9 +44,11 @@ impl TokenBucket {
     /// Refill the bucket up to capacity based on time elapsed since
     /// the last refill, then attempt to deduct one token.
     pub fn try_consume(&mut self, now: Instant) -> bool {
-        let elapsed = now.saturating_duration_since(self.last_refill).as_secs_f64();
-        self.tokens = (self.tokens + elapsed * self.params.refill_per_sec)
-            .min(self.params.burst_capacity);
+        let elapsed = now
+            .saturating_duration_since(self.last_refill)
+            .as_secs_f64();
+        self.tokens =
+            (self.tokens + elapsed * self.params.refill_per_sec).min(self.params.burst_capacity);
         self.last_refill = now;
         if self.tokens >= 1.0 {
             self.tokens -= 1.0;

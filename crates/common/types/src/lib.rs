@@ -6,9 +6,9 @@
 //! ensuring consistent representations for identifiers, assets, amounts,
 //! and PQC cryptographic primitives.
 
-use serde::{Deserialize, Serialize};
-use rust_decimal::Decimal;
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 // === Identifiers ===
@@ -50,14 +50,30 @@ pub enum AssetClass {
 pub struct Amount(pub Decimal);
 
 impl Amount {
-    pub fn zero() -> Self { Amount(Decimal::ZERO) }
-    pub fn new(val: i64, scale: u32) -> Self { Amount(Decimal::new(val, scale)) }
-    pub fn is_positive(&self) -> bool { self.0.is_sign_positive() && self.0 != Decimal::ZERO }
-    pub fn is_zero(&self) -> bool { self.0 == Decimal::ZERO }
-    pub fn checked_add(&self, other: &Amount) -> Option<Amount> { self.0.checked_add(other.0).map(Amount) }
-    pub fn checked_sub(&self, other: &Amount) -> Option<Amount> { self.0.checked_sub(other.0).map(Amount) }
-    pub fn checked_mul(&self, other: &Amount) -> Option<Amount> { self.0.checked_mul(other.0).map(Amount) }
-    pub fn inner(&self) -> Decimal { self.0 }
+    pub fn zero() -> Self {
+        Amount(Decimal::ZERO)
+    }
+    pub fn new(val: i64, scale: u32) -> Self {
+        Amount(Decimal::new(val, scale))
+    }
+    pub fn is_positive(&self) -> bool {
+        self.0.is_sign_positive() && self.0 != Decimal::ZERO
+    }
+    pub fn is_zero(&self) -> bool {
+        self.0 == Decimal::ZERO
+    }
+    pub fn checked_add(&self, other: &Amount) -> Option<Amount> {
+        self.0.checked_add(other.0).map(Amount)
+    }
+    pub fn checked_sub(&self, other: &Amount) -> Option<Amount> {
+        self.0.checked_sub(other.0).map(Amount)
+    }
+    pub fn checked_mul(&self, other: &Amount) -> Option<Amount> {
+        self.0.checked_mul(other.0).map(Amount)
+    }
+    pub fn inner(&self) -> Decimal {
+        self.0
+    }
 }
 
 impl fmt::Display for Amount {
@@ -67,16 +83,24 @@ impl fmt::Display for Amount {
 }
 
 impl fmt::Display for BankId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 impl fmt::Display for TenantId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 impl fmt::Display for AssetId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 impl fmt::Display for VaultId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 /// ISO 4217 currency code.
@@ -84,9 +108,15 @@ impl fmt::Display for VaultId {
 pub struct Currency(pub String);
 
 impl Currency {
-    pub fn usd() -> Self { Currency("USD".into()) }
-    pub fn eur() -> Self { Currency("EUR".into()) }
-    pub fn gbp() -> Self { Currency("GBP".into()) }
+    pub fn usd() -> Self {
+        Currency("USD".into())
+    }
+    pub fn eur() -> Self {
+        Currency("EUR".into())
+    }
+    pub fn gbp() -> Self {
+        Currency("GBP".into())
+    }
 
     /// Returns true if the inner string is a valid ISO 4217 format (3 uppercase ASCII letters).
     pub fn is_valid_iso4217(&self) -> bool {

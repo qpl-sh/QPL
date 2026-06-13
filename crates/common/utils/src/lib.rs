@@ -2,16 +2,16 @@
 
 //! Shared utility functions: logging, serialization, error handling.
 
-use sha2::{Sha256, Digest};
-use sql_types::Timestamp;
 use chrono::Utc;
+use sha2::{Digest, Sha256};
+use sql_types::Timestamp;
 
 /// Generates a unique ID with the given prefix using SHA-256 of random bytes.
 pub fn generate_id(prefix: &str) -> String {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
     use std::time::{SystemTime, UNIX_EPOCH};
-    
+
     let mut hasher = DefaultHasher::new();
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -19,7 +19,7 @@ pub fn generate_id(prefix: &str) -> String {
         .as_nanos()
         .hash(&mut hasher);
     std::process::id().hash(&mut hasher);
-    
+
     let hash = hasher.finish();
     format!("{}_{:016x}", prefix, hash)
 }

@@ -1,9 +1,12 @@
 //! QPL E2E integration tests — signing + proving pipelines.
 
+#[cfg(test)]
+mod tests {
+
+use chrono::Utc;
 use qpl_network::coordination::{CoordinationManager, PartialResponse, RoundStatus};
 use qpl_network::fees::{FeeCalculator, FeeOperation};
-use qpl_network::types::{OperatorId, RequestId, QuorumRequirement, Urgency};
-use chrono::Utc;
+use qpl_network::types::{OperatorId, QuorumRequirement, RequestId, Urgency};
 
 /// Test the full fee estimation flow.
 #[test]
@@ -36,19 +39,43 @@ fn test_coordination_round_lifecycle() {
     let op2 = OperatorId::from_public_key(&[2u8; 32]);
     let op3 = OperatorId::from_public_key(&[3u8; 32]);
 
-    let s1 = mgr.add_partial(&req_id, PartialResponse {
-        operator_id: op1, shard_index: 0, payload: vec![0xAA], received_at: Utc::now(),
-    }).unwrap();
+    let s1 = mgr
+        .add_partial(
+            &req_id,
+            PartialResponse {
+                operator_id: op1,
+                shard_index: 0,
+                payload: vec![0xAA],
+                received_at: Utc::now(),
+            },
+        )
+        .unwrap();
     assert_eq!(s1, RoundStatus::Collecting);
 
-    let s2 = mgr.add_partial(&req_id, PartialResponse {
-        operator_id: op2, shard_index: 1, payload: vec![0xBB], received_at: Utc::now(),
-    }).unwrap();
+    let s2 = mgr
+        .add_partial(
+            &req_id,
+            PartialResponse {
+                operator_id: op2,
+                shard_index: 1,
+                payload: vec![0xBB],
+                received_at: Utc::now(),
+            },
+        )
+        .unwrap();
     assert_eq!(s2, RoundStatus::Collecting);
 
-    let s3 = mgr.add_partial(&req_id, PartialResponse {
-        operator_id: op3, shard_index: 2, payload: vec![0xCC], received_at: Utc::now(),
-    }).unwrap();
+    let s3 = mgr
+        .add_partial(
+            &req_id,
+            PartialResponse {
+                operator_id: op3,
+                shard_index: 2,
+                payload: vec![0xCC],
+                received_at: Utc::now(),
+            },
+        )
+        .unwrap();
     assert_eq!(s3, RoundStatus::ThresholdReached);
 
     // Verify threshold reached
@@ -70,3 +97,5 @@ fn test_sdk_config_presets() {
     assert_eq!(mainnet.solana_rpc, "https://api.mainnet-beta.solana.com");
     assert_eq!(mainnet.max_retries, 5);
 }
+
+} // mod tests

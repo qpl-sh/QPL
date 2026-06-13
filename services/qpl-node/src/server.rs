@@ -208,13 +208,14 @@ async fn handle_authenticated(state: &ServerState, env: AuthEnvelope) -> String 
     }
 
     // Verify the auth header.
-    let operator_id = match auth::verify_auth(&state.node.auth, &env.auth, &inner.method, &inner.params) {
-        Ok(id) => id,
-        Err(failure) => {
-            state.node.metrics.record_auth_failure();
-            return sanitized_error_response(auth::failure_to_code(&failure), failure);
-        }
-    };
+    let operator_id =
+        match auth::verify_auth(&state.node.auth, &env.auth, &inner.method, &inner.params) {
+            Ok(id) => id,
+            Err(failure) => {
+                state.node.metrics.record_auth_failure();
+                return sanitized_error_response(auth::failure_to_code(&failure), failure);
+            }
+        };
 
     // Rate-limit AFTER auth (so unauthenticated traffic can't fill a bucket).
     if !state.node.rate_limiter.check(&operator_id) {
@@ -276,8 +277,8 @@ fn handle_health(state: &ServerState) -> DispatchResult {
 }
 
 async fn handle_estimate_fee(state: &ServerState, params: serde_json::Value) -> DispatchResult {
-    let req: FeeEstimateRequest = serde_json::from_value(params)
-        .map_err(|e| (ErrorCode::InvalidParams, e.to_string()))?;
+    let req: FeeEstimateRequest =
+        serde_json::from_value(params).map_err(|e| (ErrorCode::InvalidParams, e.to_string()))?;
     let resp = handlers::estimate_fee(&state.node, &req.service_type, &req.urgency)
         .await
         .map_err(|e| (ErrorCode::InternalError, e.to_string()))?;
@@ -286,8 +287,8 @@ async fn handle_estimate_fee(state: &ServerState, params: serde_json::Value) -> 
 
 async fn handle_sign(state: &ServerState, params: serde_json::Value) -> DispatchResult {
     state.node.metrics.record_request();
-    let req: SignRequest = serde_json::from_value(params)
-        .map_err(|e| (ErrorCode::InvalidParams, e.to_string()))?;
+    let req: SignRequest =
+        serde_json::from_value(params).map_err(|e| (ErrorCode::InvalidParams, e.to_string()))?;
     match handlers::handle_sign(&state.node, req).await {
         Ok(resp) => {
             state.node.metrics.record_success();
@@ -302,8 +303,8 @@ async fn handle_sign(state: &ServerState, params: serde_json::Value) -> Dispatch
 
 async fn handle_prove(state: &ServerState, params: serde_json::Value) -> DispatchResult {
     state.node.metrics.record_request();
-    let req: ProveRequest = serde_json::from_value(params)
-        .map_err(|e| (ErrorCode::InvalidParams, e.to_string()))?;
+    let req: ProveRequest =
+        serde_json::from_value(params).map_err(|e| (ErrorCode::InvalidParams, e.to_string()))?;
     match handlers::handle_prove(&state.node, req).await {
         Ok(resp) => {
             state.node.metrics.record_success();
@@ -349,7 +350,12 @@ mod tests {
         }
     }
 
-    fn build_envelope_line(operator_id: &str, pubkey: &[u8], method: &str, params: serde_json::Value) -> String {
+    fn build_envelope_line(
+        operator_id: &str,
+        pubkey: &[u8],
+        method: &str,
+        params: serde_json::Value,
+    ) -> String {
         let ts = now_ns();
         let preimage = canonical_preimage(method, &params, ts).unwrap();
         let sig = dev_signature(pubkey, &preimage);
@@ -421,7 +427,8 @@ mod tests {
                 "signature": hex::encode(sig),
             },
             "request": { "method": "estimate_fee", "params": params }
-        }).to_string();
+        })
+        .to_string();
         let resp = handle_line(&state, &env).await;
         assert!(resp.contains("-32001"));
     }
@@ -434,17 +441,33 @@ mod tests {
         let state = make_state(vec![(op.clone(), pk.clone())], 2, 0);
 
         for _ in 0..2 {
-            let line = build_envelope_line(&op, &pk, "estimate_fee",
-                serde_json::json!({"service_type":"sign","urgency":"standard"}));
+            let line = build_envelope_line(
+                &op,
+                &pk,
+                "estimate_fee",
+                serde_json::json!({"service_type":"sign","urgency":"standard"}),
+            );
             let resp = handle_line(&state, &line).await;
             assert!(resp.contains("\"result\""), "unexpected: {}", resp);
         }
-        let line = build_envelope_line(&op, &pk, "estimate_fee",
-            serde_json::json!({"service_type":"sign","urgency":"standard"}));
+        let line = build_envelope_line(
+            &op,
+            &pk,
+            "estimate_fee",
+            serde_json::json!({"service_type":"sign","urgency":"standard"}),
+        );
         let resp = handle_line(&state, &line).await;
-        assert!(resp.contains("-32002"), "expected rate-limit, got: {}", resp);
+        assert!(
+            resp.contains("-32002"),
+            "expected rate-limit, got: {}",
+            resp
+        );
         assert_eq!(
-            state.node.metrics.rate_limited_total.load(Ordering::Relaxed),
+            state
+                .node
+                .metrics
+                .rate_limited_total
+                .load(Ordering::Relaxed),
             1
         );
     }

@@ -167,10 +167,7 @@ pub enum ServiceResponsePayload {
         public_inputs: Vec<u8>,
     },
     /// Error response.
-    Error {
-        code: u32,
-        message: String,
-    },
+    Error { code: u32, message: String },
 }
 
 /// Configuration for a proof generation request.
@@ -421,7 +418,9 @@ mod tests {
         let deserialized: ServiceRequestPayload = serde_json::from_str(&json).unwrap();
 
         match deserialized {
-            ServiceRequestPayload::Sign { message, quorum, .. } => {
+            ServiceRequestPayload::Sign {
+                message, quorum, ..
+            } => {
                 assert_eq!(message, b"hello quantum world");
                 assert_eq!(quorum.threshold, 3);
             }
@@ -471,7 +470,7 @@ mod tests {
         let mut guard = ReplayGuard::new();
         let sender = test_sender(7);
         let now = 60 * 1_000_000_000u64; // 60s in nanos
-        // 31s in the past — beyond the 30s past-skew tolerance
+                                         // 31s in the past — beyond the 30s past-skew tolerance
         let msg_ts = now - 31 * 1_000_000_000;
         let msg = make_msg(&sender, 0, msg_ts);
         let err = guard.validate_at(&msg, now).unwrap_err();
@@ -517,7 +516,9 @@ mod tests {
         let stale = make_msg(&sender, 3, now);
         let err = guard.validate_at(&stale, now).unwrap_err();
         match err {
-            NetworkError::NonMonotonicSequence { expected_gt, got, .. } => {
+            NetworkError::NonMonotonicSequence {
+                expected_gt, got, ..
+            } => {
                 assert_eq!(expected_gt, 5);
                 assert_eq!(got, 3);
             }

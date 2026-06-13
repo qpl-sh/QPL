@@ -31,9 +31,8 @@ fn bench_decapsulation(c: &mut Criterion) {
 
     c.bench_function("ml_kem_decapsulation", |b| {
         b.iter(|| {
-            let shared_secret =
-                decapsulate(black_box(&ciphertext), black_box(&keypair.secret_key))
-                    .expect("decapsulation should succeed");
+            let shared_secret = decapsulate(black_box(&ciphertext), black_box(&keypair.secret_key))
+                .expect("decapsulation should succeed");
             black_box(shared_secret)
         })
     });

@@ -6,20 +6,20 @@
 
 use thiserror::Error;
 use winterfell::{
-    crypto::DefaultRandomCoin,
-    math::fields::f128::BaseElement,
-    matrix::ColMatrix,
-    DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions, Prover, StarkDomain,
-    TraceInfo, TracePolyTable, TraceTable,
+    crypto::DefaultRandomCoin, math::fields::f128::BaseElement, matrix::ColMatrix,
+    DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions, Prover, StarkDomain, TraceInfo,
+    TracePolyTable, TraceTable,
 };
 
 use crate::air::{SettlementAir, SettlementPublicInputs, TRACE_WIDTH};
 use crate::trace::{build_settlement_trace, TraceResult};
-use crate::types::{AccountBalance, RollupProof, RollupProofWithCommitment, RollupPublicInputs, RollupState, Transaction};
+use crate::types::{
+    AccountBalance, RollupProof, RollupProofWithCommitment, RollupPublicInputs, RollupState,
+    Transaction,
+};
 
 /// Security level for STARK proofs
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SecurityLevel {
     /// 96-bit security (faster, suitable for testing)
     #[default]
@@ -27,7 +27,6 @@ pub enum SecurityLevel {
     /// 128-bit security (production-grade)
     High128,
 }
-
 
 /// Configuration for the STARK prover
 #[derive(Debug, Clone)]
@@ -259,7 +258,10 @@ impl SettlementProver {
     }
 
     /// Create a TraceTable from the trace result
-    fn create_trace_table(&self, trace_result: &TraceResult) -> Result<TraceTable<BaseElement>, ProverError> {
+    fn create_trace_table(
+        &self,
+        trace_result: &TraceResult,
+    ) -> Result<TraceTable<BaseElement>, ProverError> {
         // Verify we have the right number of columns
         if trace_result.trace_columns.len() != TRACE_WIDTH {
             return Err(ProverError::TraceBuildError(format!(
@@ -284,7 +286,10 @@ struct SettlementProverWrapper {
 
 impl SettlementProverWrapper {
     fn new(options: ProofOptions, pub_inputs: SettlementPublicInputs) -> Self {
-        Self { options, pub_inputs }
+        Self {
+            options,
+            pub_inputs,
+        }
     }
 }
 
@@ -331,7 +336,12 @@ mod tests {
     use super::*;
     use crate::types::AccountId;
 
-    fn make_test_transaction(sender_seed: u8, receiver_seed: u8, amount: u64, nonce: u64) -> Transaction {
+    fn make_test_transaction(
+        sender_seed: u8,
+        receiver_seed: u8,
+        amount: u64,
+        nonce: u64,
+    ) -> Transaction {
         // For prover tests, we use the legacy new() method
         // Proof generation operates on already-validated transactions
         Transaction::new(
@@ -383,10 +393,17 @@ mod tests {
         let txs = vec![make_test_transaction(1, 2, 100, 0)];
 
         let result = prover.prove_batch(&txs, &initial_state);
-        assert!(result.is_ok(), "Proof generation should succeed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Proof generation should succeed: {:?}",
+            result.err()
+        );
 
         let proof = result.unwrap();
-        assert!(!proof.proof_bytes.is_empty(), "Proof bytes should not be empty");
+        assert!(
+            !proof.proof_bytes.is_empty(),
+            "Proof bytes should not be empty"
+        );
         assert_eq!(proof.public_inputs.transaction_count, 1);
     }
 
@@ -413,7 +430,11 @@ mod tests {
         ];
 
         let result = prover.prove_batch(&txs, &initial_state);
-        assert!(result.is_ok(), "Multiple tx proof should succeed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Multiple tx proof should succeed: {:?}",
+            result.err()
+        );
 
         let proof = result.unwrap();
         assert_eq!(proof.public_inputs.transaction_count, 3);

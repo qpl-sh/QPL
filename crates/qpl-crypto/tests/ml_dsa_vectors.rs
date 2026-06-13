@@ -14,7 +14,10 @@ fn test_ml_dsa_vectors_all_pass() {
     // Verify we have the expected structure
     assert_eq!(vectors.algorithm, "ML-DSA-65");
     assert!(!vectors.test_groups.is_empty(), "Should have test groups");
-    assert!(vectors.number_of_tests >= 10, "Should have at least 10 test cases");
+    assert!(
+        vectors.number_of_tests >= 10,
+        "Should have at least 10 test cases"
+    );
 
     // Run all test vectors
     let results = run_ml_dsa_test_vectors(&vectors);
@@ -102,7 +105,10 @@ fn test_ml_dsa_json_serialization_roundtrip() {
 
     // Verify JSON is non-empty and contains expected content
     assert!(!json.is_empty(), "JSON should not be empty");
-    assert!(json.contains("ML-DSA-65"), "JSON should contain algorithm name");
+    assert!(
+        json.contains("ML-DSA-65"),
+        "JSON should contain algorithm name"
+    );
     assert!(
         json.contains("valid_signatures"),
         "JSON should contain valid_signatures group"
@@ -151,10 +157,16 @@ fn test_ml_dsa_test_vector_fields() {
             assert!(!test.flags.is_empty(), "flags should not be empty");
 
             // All tests should have a public key for signature tests
-            assert!(test.pk.is_some(), "pk should be present for signature tests");
+            assert!(
+                test.pk.is_some(),
+                "pk should be present for signature tests"
+            );
 
             // All tests should have a signature
-            assert!(test.sig.is_some(), "sig should be present for signature tests");
+            assert!(
+                test.sig.is_some(),
+                "sig should be present for signature tests"
+            );
 
             // Result should be either "valid" or "invalid"
             assert!(
@@ -165,16 +177,10 @@ fn test_ml_dsa_test_vector_fields() {
 
             // Verify hex encoding is valid
             let pk = test.pk.as_ref().unwrap();
-            assert!(
-                hex::decode(pk).is_ok(),
-                "pk should be valid hex encoding"
-            );
+            assert!(hex::decode(pk).is_ok(), "pk should be valid hex encoding");
 
             let sig = test.sig.as_ref().unwrap();
-            assert!(
-                hex::decode(sig).is_ok(),
-                "sig should be valid hex encoding"
-            );
+            assert!(hex::decode(sig).is_ok(), "sig should be valid hex encoding");
 
             assert!(
                 hex::decode(&test.msg).is_ok(),

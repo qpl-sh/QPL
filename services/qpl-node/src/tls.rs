@@ -132,7 +132,8 @@ pub(crate) mod test_support {
         let mut cf = File::create(&cert_path).unwrap();
         cf.write_all(cert.cert.pem().as_bytes()).unwrap();
         let mut kf = File::create(&key_path).unwrap();
-        kf.write_all(cert.key_pair.serialize_pem().as_bytes()).unwrap();
+        kf.write_all(cert.key_pair.serialize_pem().as_bytes())
+            .unwrap();
         (
             dir,
             TlsConfig {
@@ -153,7 +154,11 @@ mod tests {
     fn build_server_config_with_ephemeral_cert() {
         let (_dir, cfg) = test_support::ephemeral_tls_config();
         let sc = build_server_config(&cfg);
-        assert!(sc.is_ok(), "build_server_config should succeed: {:?}", sc.err());
+        assert!(
+            sc.is_ok(),
+            "build_server_config should succeed: {:?}",
+            sc.err()
+        );
     }
 
     #[test]
@@ -166,6 +171,9 @@ mod tests {
         };
         let err = build_server_config(&cfg).unwrap_err();
         let msg = format!("{}", err);
-        assert!(!msg.contains("/nonexistent"), "error message must not leak paths");
+        assert!(
+            !msg.contains("/nonexistent"),
+            "error message must not leak paths"
+        );
     }
 }
