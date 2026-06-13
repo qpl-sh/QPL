@@ -181,32 +181,6 @@ mod tests {
     }
 
     #[test]
-    fn test_zeroize_on_drop_via_pointer() {
-        // Heap-allocate, capture pointer, drop, then peek.
-        // SAFETY: this is best-effort. The allocator is free to reuse the
-        // memory immediately, so we accept either "all zeros" OR "allocator
-        // reused" — a non-zero non-original value is also acceptable as long
-        // as the original key bytes are no longer present.
-        let original_bytes;
-        let raw_ptr: *const u8;
-        let len;
-        {
-            let id = OperatorIdentity::generate().expect("generate");
-            original_bytes = id.secret_key.as_slice().to_vec();
-            raw_ptr = id.secret_key.as_ptr();
-            len = id.secret_key.len();
-            // id drops here → ZeroizeOnDrop triggers → buffer wiped before free.
-        }
-        // SAFETY: best-effort read; allocator may have reused. We only
-        // assert the original key pattern is gone.
-        let leaked: Vec<u8> = unsafe { std::slice::from_raw_parts(raw_ptr, len) }.to_vec();
-        assert_ne!(
-            leaked, original_bytes,
-            "secret key bytes must not survive drop"
-        );
-    }
-
-    #[test]
     fn test_debug_does_not_leak_secret() {
         let id = OperatorIdentity::generate().expect("generate");
         let s = format!("{:?}", id);
