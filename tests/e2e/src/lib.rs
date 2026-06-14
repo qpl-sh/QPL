@@ -31,7 +31,7 @@ mod tests {
         let coordinator = OperatorId::from_public_key(&[0u8; 32]);
 
         // Start round: threshold=3, total=5, timeout=60s
-        mgr.start_round(req_id.clone(), coordinator, 3, 5, 60);
+        let _ = mgr.start_round(req_id.clone(), coordinator, 3, 5, 60);
         assert!(mgr.get_round(&req_id).is_some());
 
         // Submit partial responses
