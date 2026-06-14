@@ -9,9 +9,15 @@ version = 2
 # Allow-list known unmaintained crates that are accepted residual risks.
 # These are tracked in THREAT_MODEL.md as R-2.
 ignore = [
-    # pqcrypto-* crates are upstream-maintained and FIPS-validated.
-    # "Unmaintained" status is due to infrequent releases, not security issues.
-    { id = "RUSTSEC-2024-0388", reason = "pqcrypto-traits is transitively unmaintained; upstream is FIPS-validated" },
+    # paste is a transitive dependency; no safe upgrade available
+    { id = "RUSTSEC-2024-0436", reason = "paste is unmaintained; transitive dep from pqcrypto ecosystem" },
+    # pqcrypto-* crates: PQClean being archived July 2026; FIPS-validated implementations
+    { id = "RUSTSEC-2026-0161", reason = "pqcrypto-mlkem unmaintained; FIPS 203 validated, migration to ml-kem planned" },
+    { id = "RUSTSEC-2026-0162", reason = "pqcrypto-traits unmaintained; FIPS validated trait definitions" },
+    { id = "RUSTSEC-2026-0163", reason = "pqcrypto-internals unmaintained; FIPS validated internal FFI" },
+    { id = "RUSTSEC-2026-0166", reason = "pqcrypto-mldsa unmaintained; FIPS 204 validated, migration to ml-dsa planned" },
+    # rustls-pemfile archived; functionality moved to rustls-pki-types
+    { id = "RUSTSEC-2025-0134", reason = "rustls-pemfile unmaintained; transitive dep, functionality in rustls-pki-types" },
 ]
 
 [licenses]
@@ -24,6 +30,7 @@ allow = [
     "Unicode-DFS-2016",
     "MPL-2.0",
     "CC0-1.0",
+    "CDLA-Permissive-2.0",
 ]
 
 [bans]
