@@ -112,8 +112,8 @@ Before shipping, you verify:
 - [x] `withdraw` and `slash` use checked arithmetic (CISO #7)
 - [x] All Solana programs compile and pass full test suite
 - [x] No secrets in git history, no hardcoded credentials
-- [ ] Dependency audit: no known CVEs in Cargo.lock (re-run before each release)
-- [ ] Rate limiting on public-facing API endpoints (operator-by-operator policy; not protocol-level)
+- [x] Dependency audit: no known CVEs in Cargo.lock (re-run before each release)
+- [x] Rate limiting on public-facing API endpoints (operator-by-operator policy; not protocol-level)
 
 ## Constraints
 
