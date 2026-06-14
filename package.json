@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "description": "Anchor integration tests for QPL Solana programs",
   "scripts": {
-    "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+    "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts",
+    "test:local": "ts-mocha -p ./tsconfig.json -t 1000000 tests/solana/qpl-staking.ts",
+    "test:testnet": "ts-mocha -p ./tsconfig.json -t 1000000 tests/solana/testnet-smoke.ts",
+    "deploy:testnet": "bash scripts/testnet-deploy.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.0",

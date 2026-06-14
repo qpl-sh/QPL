@@ -46,3 +46,7 @@ programs/**/target/
 
 # Qoder
 .qoder/
+
+# QPL testnet
+program-keypairs/
+scripts/deploy-*.log
