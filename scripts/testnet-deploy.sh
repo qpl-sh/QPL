@@ -104,9 +104,9 @@ success "  qpl-fee-router: $FEE_ID"
 success "  qpl-registry:   $REGISTRY_ID"
 
 # Update declare_id! in each program
-sed -i "s/declare_id!(\"[^\"]*\")/declare_id!(\"$STAKING_ID\")/" "$PROJECT_DIR/programs/qpl-staking/src/lib.rs"
-sed -i "s/declare_id!(\"[^\"]*\")/declare_id!(\"$FEE_ID\")/" "$PROJECT_DIR/programs/qpl-fee-router/src/lib.rs"
-sed -i "s/declare_id!(\"[^\"]*\")/declare_id!(\"$REGISTRY_ID\")/" "$PROJECT_DIR/programs/qpl-registry/src/lib.rs"
+sed -i '' "s/declare_id!(\"[^\"]*\")/declare_id!(\"$STAKING_ID\")/" "$PROJECT_DIR/programs/qpl-staking/src/lib.rs"
+sed -i '' "s/declare_id!(\"[^\"]*\")/declare_id!(\"$FEE_ID\")/" "$PROJECT_DIR/programs/qpl-fee-router/src/lib.rs"
+sed -i '' "s/declare_id!(\"[^\"]*\")/declare_id!(\"$REGISTRY_ID\")/" "$PROJECT_DIR/programs/qpl-registry/src/lib.rs"
 
 # Update Anchor.toml
 cd "$PROJECT_DIR"

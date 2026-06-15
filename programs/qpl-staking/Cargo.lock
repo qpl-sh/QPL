@@ -1160,7 +1160,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "qpl-fee-router"
+name = "qpl-staking"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",

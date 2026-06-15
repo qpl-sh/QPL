@@ -8,7 +8,20 @@ use anchor_lang::prelude::*;
 use anchor_lang::AccountDeserialize;
 use anchor_lang::AccountSerialize;
 
-declare_id!("QPLFee1111111111111111111111111111111111111");
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
+
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "QPL Fee Router",
+    project_url: "https://qpl.network",
+    contacts: "email:security@qpl.network",
+    policy: "https://github.com/ryana-sol/qpl/blob/main/SECURITY.md",
+    preferred_languages: "en",
+    source_code: "https://github.com/ryana-sol/qpl/tree/main/programs/qpl-fee-router"
+}
+
+declare_id!("71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW");
 
 /// Fee split constants (must sum to 100)
 pub const COORDINATOR_SHARE_PCT: u8 = 40;

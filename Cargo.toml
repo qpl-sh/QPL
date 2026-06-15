@@ -10,7 +10,7 @@ members = [
     "services/qpl-node",
     "tests/e2e",
 ]
-exclude = ["fuzz"]
+exclude = ["fuzz", "programs"]
 
 [workspace.package]
 version = "0.1.0"
@@ -19,3 +19,6 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/jnodes/qpl-network"
 authors = ["QPL Contributors"]
 homepage = "https://github.com/jnodes/qpl-network"
+
+[profile.release]
+overflow-checks = true

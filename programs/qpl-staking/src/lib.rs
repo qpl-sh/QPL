@@ -1,11 +1,25 @@
+#![allow(unexpected_cfgs)]
+
 use anchor_lang::prelude::*;
 
-declare_id!("QPLStk1111111111111111111111111111111111111");
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
 
-/// Minimum stake: 10 SOL (in lamports) — ~$680 at $68/SOL
-/// Provides meaningful Sybil resistance and skin-in-the-game for operators.
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "QPL Staking",
+    project_url: "https://qpl.network",
+    contacts: "email:security@qpl.network",
+    policy: "https://github.com/ryana-sol/qpl/blob/main/SECURITY.md",
+    preferred_languages: "en",
+    source_code: "https://github.com/ryana-sol/qpl/tree/main/programs/qpl-staking"
+}
+
+declare_id!("4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn");
+
+/// Minimum stake: 10 SOL (in lamports).
 /// At 10K sigs/day revenue (~$210/day), 10 SOL ≈ 3.2 days of revenue at risk.
-pub const MIN_STAKE_LAMPORTS: u64 = 10_000_000_000;
+pub const MIN_STAKE_LAMPORTS: u64 = 10_000_000_000; // 10 SOL
 
 /// Unbonding period: 7 days in seconds
 pub const UNBOND_PERIOD_SECS: i64 = 7 * 24 * 3600;
@@ -384,8 +398,7 @@ pub struct InitiateUnstake<'info> {
 
     #[account(
         mut,
-        has_one = authority @ QplStakingError::Unauthorized,
-        constraint = operator.key() == operator_account.authority
+        constraint = operator.key() == operator_account.authority @ QplStakingError::Unauthorized,
     )]
     pub operator_account: Account<'info, OperatorAccount>,
 }
@@ -397,8 +410,7 @@ pub struct Withdraw<'info> {
 
     #[account(
         mut,
-        has_one = authority @ QplStakingError::Unauthorized,
-        constraint = operator.key() == operator_account.authority
+        constraint = operator.key() == operator_account.authority @ QplStakingError::Unauthorized,
     )]
     pub operator_account: Account<'info, OperatorAccount>,
 
@@ -458,8 +470,7 @@ pub struct DisputeSlash<'info> {
 
     #[account(
         mut,
-        has_one = authority @ QplStakingError::Unauthorized,
-        constraint = operator.key() == operator_account.authority
+        constraint = operator.key() == operator_account.authority @ QplStakingError::Unauthorized,
     )]
     pub operator_account: Account<'info, OperatorAccount>,
 }
@@ -471,8 +482,7 @@ pub struct DepositStake<'info> {
 
     #[account(
         mut,
-        has_one = authority @ QplStakingError::Unauthorized,
-        constraint = operator.key() == operator_account.authority
+        constraint = operator.key() == operator_account.authority @ QplStakingError::Unauthorized,
     )]
     pub operator_account: Account<'info, OperatorAccount>,
 

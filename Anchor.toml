@@ -6,26 +6,23 @@ members = [
 ]
 
 [provider]
-cluster = "Localnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/solana/**/*.ts"
 
 [programs.localnet]
-qpl_staking = "QPLStk1111111111111111111111111111111111111"
-qpl_fee_router = "QPLFee1111111111111111111111111111111111111"
-qpl_registry = "QPLReg1111111111111111111111111111111111111"
+qpl_staking = "4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn"
+qpl_fee_router = "71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW"
+qpl_registry = "CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7"
 
 [programs.devnet]
-# Generate real program IDs with: solana-keygen new --outfile qpl-staking.json
-# Then deploy with: anchor deploy --provider.cluster devnet
-qpl_staking = "QPLStk1111111111111111111111111111111111111"
-qpl_fee_router = "QPLFee1111111111111111111111111111111111111"
-qpl_registry = "QPLReg1111111111111111111111111111111111111"
+qpl_staking = "4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn"
+qpl_fee_router = "71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW"
+qpl_registry = "CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7"
 
 [programs.testnet]
-# Testnet deployment uses same IDs until mainnet upgrade
-qpl_staking = "QPLStk1111111111111111111111111111111111111"
-qpl_fee_router = "QPLFee1111111111111111111111111111111111111"
-qpl_registry = "QPLReg1111111111111111111111111111111111111"
+qpl_staking = "4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn"
+qpl_fee_router = "71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW"
+qpl_registry = "CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7"

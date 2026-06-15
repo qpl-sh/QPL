@@ -13,11 +13,13 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 default = []
 
 [dependencies]
-anchor-lang = { version = "0.30", features = ["init-if-needed"] }
-anchor-spl = "0.30"
+anchor-lang = { version = "0.31", features = ["init-if-needed"] }
+anchor-spl = "0.31"
+solana-security-txt = "1.1.3"
 
 # Anchor programs are built standalone, not as part of the outer Cargo workspace.
 [workspace]
