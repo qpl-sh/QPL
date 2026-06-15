@@ -69,17 +69,37 @@ Save the identity file and configure qpl-node.toml with the path.
 
 ## Step 3: Stake SOL
 
-Operators must stake a minimum of **10 SOL** (~$680 at $68/SOL) as a security deposit. This collateral ensures honest behavior — operators who violate protocol rules (downtime, malformed responses) can be slashed.
+Operators must stake a minimum of **10 SOL** as a security deposit. This collateral ensures honest behavior — operators who violate protocol rules (downtime, malformed responses) can be slashed.
 
-### Using Solana CLI
+### Using Solana CLI + Anchor
 
 ```bash
-# Ensure you have at least 11 SOL (10 SOL stake + fees)
+# 1. Ensure you have at least 12 SOL (10 SOL stake + rent + fees)
 solana balance
 
-# Transfer to the staking program
-# (Use the QPL SDK or CLI once available, or interact with the program directly)
+# 2. Set your RPC to the target cluster
+solana config set --url https://api.devnet.solana.com  # devnet
+# solana config set --url https://api.mainnet-beta.solana.com  # mainnet (future)
+
+# 3. Stake via the QPL staking program
+#    Replace <OPERATOR_ID> with your 32-byte hex operator ID from Step 2
+anchor test --provider.cluster devnet -- \
+  tests/solana/testnet-smoke.ts  # smoke test validates staking flow
+
+# Or interact directly (requires Anchor IDL):
+npx ts-node -e "
+  const { QplStaking } = require('./target/types/qpl_staking');
+  // See tests/solana/testnet-smoke.ts for full staking example
+"
 ```
+
+### On-Chain Programs (Devnet)
+
+| Program | ID |
+|---------|----|
+| qpl_staking | `4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn` |
+| qpl_fee_router | `71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW` |
+| qpl_registry | `CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7` |
 
 ### Staking Parameters
 
@@ -87,7 +107,16 @@ solana balance
 |-----------|-------|-------|
 | Minimum stake | 10 SOL (~$680 at $68/SOL) | Security deposit |
 | Unbonding period | 7 days | After initiating unstake |
-| Slashing | Governance-controlled | For protocol violations |
+| Slashing | Governance-controlled | 24h dispute window, then permissionless execution |
+
+### Slashing Details
+
+| Event | Dispute Window | Max Slash |
+|-------|----------------|----------|
+| Governance-initiated slash | 24 hours | Up to staked amount |
+| Operator dispute | Within 24h window | Cancels slash entirely |
+| Execute after dispute window | Permissionless | Slashed amount sent to treasury |
+| Unbonding period | 7 days | Cannot withdraw until elapsed |
 
 ---
 
@@ -231,6 +260,28 @@ The node exposes metrics via the gRPC `health` endpoint:
 - `rate_limited_total` — Rate-limited requests
 - `heartbeat_missed_total` — Missed heartbeats
 - `uptime_seconds` — Time since node start
+
+---
+
+## Coordinator Selection & Quorum Formation
+
+QPL uses a **rotating coordinator** model to prevent centralization:
+
+1. **Quorum assembly**: When a client requests a signing/proving operation, the network selects a quorum of active operators based on:
+   - Stake weight (higher stake = higher selection probability)
+   - Service bitmask (operator must support the requested algorithm)
+   - Uptime score (operators with missed heartbeats are deprioritized)
+
+2. **Coordinator rotation**: The coordinator role (which assembles partial signatures and routes the final result) rotates among quorum members. Each operator serves as coordinator approximately proportional to their stake share.
+
+3. **Fee advantage**: Coordinators earn 40% of the operation fee, making rotation a significant revenue factor. With 20 operators, each serves as coordinator ~5% of the time.
+
+4. **Round lifecycle**:
+   ```
+   Client Request → Quorum Selection → Coordinator Broadcasts
+   → Participants Sign/Prove → Coordinator Aggregates
+   → Result Returned to Client → Fee Distributed On-Chain
+   ```
 
 ---
 

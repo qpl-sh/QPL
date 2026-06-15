@@ -12,6 +12,22 @@ Quantum computers will break ECDSA and RSA within the decade. QPL replaces legac
 - **FRI-based zk-STARKs** with no trusted setup (Winterfell)
 - **Decentralized operator network** with on-chain staking and slashing
 
+## Current Status
+
+| | Status |
+|---|---|
+| **Devnet** | 3 programs deployed and tested |
+| **Tests** | 255+ Rust tests passing, 17 Solana integration tests |
+| **Audit** | Internal v0.3 complete; external audit planned |
+| **CI** | Format, clippy, test, dependency audit |
+
+**Devnet Program IDs:**
+- `qpl_staking`: [`4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn`](https://explorer.solana.com/address/4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn?cluster=devnet)
+- `qpl_fee_router`: [`71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW`](https://explorer.solana.com/address/71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW?cluster=devnet)
+- `qpl_registry`: [`CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7`](https://explorer.solana.com/address/CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7?cluster=devnet)
+
+See [DEVNET_REPORT.md](DEVNET_REPORT.md) for full deployment details and test results.
+
 ## Architecture
 
 ```
