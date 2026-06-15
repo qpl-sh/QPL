@@ -1,11 +1,8 @@
 #![allow(unexpected_cfgs)]
 
 use anchor_lang::prelude::*;
-
-#[cfg(not(feature = "no-entrypoint"))]
 use solana_security_txt::security_txt;
 
-#[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
     name: "QPL Registry",
     project_url: "https://qpl.network",
@@ -14,6 +11,10 @@ security_txt! {
     preferred_languages: "en",
     source_code: "https://github.com/ryana-sol/qpl/tree/main/programs/qpl-registry"
 }
+
+// Force linker to retain security.txt static (macro lacks #[used])
+#[used]
+static SECURITY_TXT_KEEP: &str = SECURITY_TXT;
 
 declare_id!("CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7");
 

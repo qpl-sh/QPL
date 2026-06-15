@@ -306,10 +306,10 @@ pub mod qpl_operator_service_client {
         dead_code,
         missing_docs,
         clippy::wildcard_imports,
-        clippy::let_unit_value,
+        clippy::let_unit_value
     )]
-    use tonic::codegen::*;
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
     /// External API: SDK → Operator Node
     /// Protocols call these to use QPL services.
     #[derive(Debug, Clone)]
@@ -355,9 +355,8 @@ pub mod qpl_operator_service_client {
                     <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
+                Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             QplOperatorServiceClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -396,47 +395,33 @@ pub mod qpl_operator_service_client {
         pub async fn get_capabilities(
             &mut self,
             request: impl tonic::IntoRequest<super::GetCapabilitiesRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetCapabilitiesResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::GetCapabilitiesResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplOperatorService/GetCapabilities",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplOperatorService/GetCapabilities");
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("qpl.v1.QplOperatorService", "GetCapabilities"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "qpl.v1.QplOperatorService",
+                "GetCapabilities",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Estimate the fee for an operation before payment.
         pub async fn estimate_fee(
             &mut self,
             request: impl tonic::IntoRequest<super::EstimateFeeRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::EstimateFeeResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::EstimateFeeResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplOperatorService/EstimateFee",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplOperatorService/EstimateFee");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("qpl.v1.QplOperatorService", "EstimateFee"));
@@ -447,18 +432,12 @@ pub mod qpl_operator_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::SignRequest>,
         ) -> std::result::Result<tonic::Response<super::SignResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplOperatorService/RequestSign",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplOperatorService/RequestSign");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("qpl.v1.QplOperatorService", "RequestSign"));
@@ -468,25 +447,19 @@ pub mod qpl_operator_service_client {
         pub async fn get_sign_status(
             &mut self,
             request: impl tonic::IntoRequest<super::GetStatusRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::SignStatusResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::SignStatusResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplOperatorService/GetSignStatus",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplOperatorService/GetSignStatus");
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("qpl.v1.QplOperatorService", "GetSignStatus"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "qpl.v1.QplOperatorService",
+                "GetSignStatus",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Request a STARK proof for a transaction batch.
@@ -494,18 +467,12 @@ pub mod qpl_operator_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ProveRequest>,
         ) -> std::result::Result<tonic::Response<super::ProveResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplOperatorService/RequestProve",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplOperatorService/RequestProve");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("qpl.v1.QplOperatorService", "RequestProve"));
@@ -515,25 +482,19 @@ pub mod qpl_operator_service_client {
         pub async fn get_proof_status(
             &mut self,
             request: impl tonic::IntoRequest<super::GetStatusRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ProofStatusResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::ProofStatusResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplOperatorService/GetProofStatus",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplOperatorService/GetProofStatus");
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("qpl.v1.QplOperatorService", "GetProofStatus"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "qpl.v1.QplOperatorService",
+                "GetProofStatus",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Check node health.
@@ -541,18 +502,12 @@ pub mod qpl_operator_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::HealthCheckRequest>,
         ) -> std::result::Result<tonic::Response<super::HealthResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplOperatorService/HealthCheck",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplOperatorService/HealthCheck");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("qpl.v1.QplOperatorService", "HealthCheck"));
@@ -745,10 +700,10 @@ pub mod qpl_coordination_service_client {
         dead_code,
         missing_docs,
         clippy::wildcard_imports,
-        clippy::let_unit_value,
+        clippy::let_unit_value
     )]
-    use tonic::codegen::*;
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
     /// Internal API: Node → Node
     /// Operators use this for peer coordination, threshold signing,
     /// proof verification, and network maintenance.
@@ -795,13 +750,10 @@ pub mod qpl_coordination_service_client {
                     <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
+                Into<StdError> + std::marker::Send + std::marker::Sync,
         {
-            QplCoordinationServiceClient::new(
-                InterceptedService::new(inner, interceptor),
-            )
+            QplCoordinationServiceClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -838,25 +790,18 @@ pub mod qpl_coordination_service_client {
         pub async fn handshake(
             &mut self,
             request: impl tonic::IntoRequest<super::HandshakeRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::HandshakeResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::HandshakeResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplCoordinationService/Handshake",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplCoordinationService/Handshake");
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("qpl.v1.QplCoordinationService", "Handshake"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "qpl.v1.QplCoordinationService",
+                "Handshake",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Periodic liveness signal.
@@ -864,76 +809,55 @@ pub mod qpl_coordination_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::HeartbeatMessage>,
         ) -> std::result::Result<tonic::Response<super::HeartbeatAck>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplCoordinationService/Heartbeat",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplCoordinationService/Heartbeat");
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("qpl.v1.QplCoordinationService", "Heartbeat"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "qpl.v1.QplCoordinationService",
+                "Heartbeat",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Request a partial signature from a shard-holding operator.
         pub async fn request_partial_sign(
             &mut self,
             request: impl tonic::IntoRequest<super::PartialSignRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::PartialSignResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::PartialSignResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/qpl.v1.QplCoordinationService/RequestPartialSign",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "qpl.v1.QplCoordinationService",
-                        "RequestPartialSign",
-                    ),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "qpl.v1.QplCoordinationService",
+                "RequestPartialSign",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Request proof verification from a peer.
         pub async fn verify_proof(
             &mut self,
             request: impl tonic::IntoRequest<super::VerifyProofRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::VerifyProofVote>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::VerifyProofVote>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/qpl.v1.QplCoordinationService/VerifyProof",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/qpl.v1.QplCoordinationService/VerifyProof");
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("qpl.v1.QplCoordinationService", "VerifyProof"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "qpl.v1.QplCoordinationService",
+                "VerifyProof",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Forward a request to a more suitable operator.
@@ -941,50 +865,37 @@ pub mod qpl_coordination_service_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ForwardedRequest>,
         ) -> std::result::Result<tonic::Response<super::ForwardAck>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/qpl.v1.QplCoordinationService/ForwardRequest",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("qpl.v1.QplCoordinationService", "ForwardRequest"),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "qpl.v1.QplCoordinationService",
+                "ForwardRequest",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Sync operator registry state with a peer.
         pub async fn sync_operator_state(
             &mut self,
             request: impl tonic::IntoRequest<super::StateSyncRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::StateSyncResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::StateSyncResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/qpl.v1.QplCoordinationService/SyncOperatorState",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("qpl.v1.QplCoordinationService", "SyncOperatorState"),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "qpl.v1.QplCoordinationService",
+                "SyncOperatorState",
+            ));
             self.inner.unary(req, path, codec).await
         }
     }

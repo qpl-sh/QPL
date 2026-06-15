@@ -7,11 +7,8 @@
 use anchor_lang::prelude::*;
 use anchor_lang::AccountDeserialize;
 use anchor_lang::AccountSerialize;
-
-#[cfg(not(feature = "no-entrypoint"))]
 use solana_security_txt::security_txt;
 
-#[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
     name: "QPL Fee Router",
     project_url: "https://qpl.network",
@@ -20,6 +17,10 @@ security_txt! {
     preferred_languages: "en",
     source_code: "https://github.com/ryana-sol/qpl/tree/main/programs/qpl-fee-router"
 }
+
+// Force linker to retain security.txt static (macro lacks #[used])
+#[used]
+static SECURITY_TXT_KEEP: &str = SECURITY_TXT;
 
 declare_id!("71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW");
 
