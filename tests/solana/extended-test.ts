@@ -24,9 +24,9 @@
 
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { QplStaking } from "../target/types/qpl_staking";
-import { QplFeeRouter } from "../target/types/qpl_fee_router";
-import { QplRegistry } from "../target/types/qpl_registry";
+import { QplStaking } from "../../target/types/qpl_staking";
+import { QplFeeRouter } from "../../target/types/qpl_fee_router";
+import { QplRegistry } from "../../target/types/qpl_registry";
 import {
   LAMPORTS_PER_SOL,
   PublicKey,
@@ -100,7 +100,7 @@ describe("QPL Extended Test Suite", () => {
     );
     try {
       await staking.methods.initializeConfig(treasury)
-        .accounts({ config: configPda, governance: authority.publicKey, systemProgram: SystemProgram.programId })
+        .accounts({ config: configPda, governance: authority.publicKey, systemProgram: SystemProgram.programId } as any)
         .rpc();
     } catch (err: any) {
       if (!err.logs?.some((l: string) => l.includes("already in use"))) throw err;
@@ -112,7 +112,7 @@ describe("QPL Extended Test Suite", () => {
     );
     try {
       await staking.methods.initializeVault()
-        .accounts({ stakeVault: vaultPda, authority: authority.publicKey, systemProgram: SystemProgram.programId })
+        .accounts({ stakeVault: vaultPda, authority: authority.publicKey, systemProgram: SystemProgram.programId } as any)
         .rpc();
     } catch (err: any) {
       if (!err.logs?.some((l: string) => l.includes("already in use"))) throw err;
@@ -124,7 +124,7 @@ describe("QPL Extended Test Suite", () => {
     );
     try {
       await feeRouter.methods.initialize(treasury)
-        .accounts({ config: feeConfigPda, governance: authority.publicKey, systemProgram: SystemProgram.programId })
+        .accounts({ config: feeConfigPda, governance: authority.publicKey, systemProgram: SystemProgram.programId } as any)
         .rpc();
     } catch (err: any) {
       if (!err.logs?.some((l: string) => l.includes("already in use"))) throw err;
@@ -136,7 +136,7 @@ describe("QPL Extended Test Suite", () => {
     );
     try {
       await feeRouter.methods.initializeVault()
-        .accounts({ config: feeConfigPda, feeVault: feeVaultPda, governance: authority.publicKey, systemProgram: SystemProgram.programId })
+        .accounts({ config: feeConfigPda, feeVault: feeVaultPda, governance: authority.publicKey, systemProgram: SystemProgram.programId } as any)
         .rpc();
     } catch (err: any) {
       if (!err.logs?.some((l: string) => l.includes("already in use"))) throw err;
@@ -156,7 +156,7 @@ describe("QPL Extended Test Suite", () => {
           operatorAccount: operatorPda,
           stakeVault: vaultPda,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .signers([operatorKeypair])
         .rpc();
     } catch (err: any) {
@@ -186,7 +186,7 @@ describe("QPL Extended Test Suite", () => {
         protocolBalance: protocolBalancePda,
         feeVault: feeVaultPda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .signers([protocolKeypair])
       .rpc();
 
@@ -217,7 +217,7 @@ describe("QPL Extended Test Suite", () => {
         operator: participant1.publicKey,
         earnings: earnings1Pda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
 
     await feeRouter.methods.initParticipantEarnings()
@@ -226,7 +226,7 @@ describe("QPL Extended Test Suite", () => {
         operator: participant2.publicKey,
         earnings: earnings2Pda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
 
     // Get PDAs for charge
@@ -253,7 +253,7 @@ describe("QPL Extended Test Suite", () => {
         protocolBalance: authBalancePda,
         feeVault: feeVaultPda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
 
     // Coordinator = authority
@@ -277,7 +277,7 @@ describe("QPL Extended Test Suite", () => {
         feeVault: feeVaultPda,
         treasury: treasury,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .remainingAccounts([
         { pubkey: earnings1Pda, isWritable: true, isSigner: false },
         { pubkey: earnings2Pda, isWritable: true, isSigner: false },
@@ -348,7 +348,7 @@ describe("QPL Extended Test Suite", () => {
         operator: authority.publicKey,
         earnings: coordEarningsPda,
         feeVault: feeVaultPda,
-      })
+      } as any)
       .rpc();
 
     const earningsAfter = await feeRouter.account.operatorEarnings.fetch(coordEarningsPda);
@@ -384,7 +384,7 @@ describe("QPL Extended Test Suite", () => {
         governance: authority.publicKey,
         operatorAccount: operatorPda,
         config: configPda,
-      })
+      } as any)
       .rpc();
 
     const opAccount = await staking.account.operatorAccount.fetch(operatorPda);
@@ -449,7 +449,7 @@ describe("QPL Extended Test Suite", () => {
         governance: authority.publicKey,
         operatorAccount: operatorPda,
         config: configPda,
-      })
+      } as any)
       .rpc();
   
     // Write state file for phase 2 (warp-test.ts)
@@ -498,7 +498,7 @@ describe("QPL Extended Test Suite", () => {
         operatorAccount: opPda,
         stakeVault: vaultPda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .signers([freshOp])
       .rpc();
 
@@ -510,7 +510,7 @@ describe("QPL Extended Test Suite", () => {
     // Try withdraw immediately (should fail — unbonding not elapsed)
     try {
       await staking.methods.withdraw()
-        .accounts({ operator: freshOp.publicKey, operatorAccount: opPda, stakeVault: vaultPda })
+        .accounts({ operator: freshOp.publicKey, operatorAccount: opPda, stakeVault: vaultPda } as any)
         .signers([freshOp])
         .rpc();
       expect.fail("Should have rejected early withdraw");
@@ -556,7 +556,7 @@ describe("QPL Extended Test Suite", () => {
         operatorAccount: opPda,
         stakeVault: vaultPda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .signers([freshOp])
       .rpc();
 
@@ -568,7 +568,7 @@ describe("QPL Extended Test Suite", () => {
         governance: authority.publicKey,
         operatorAccount: opPda,
         config: configPda,
-      })
+      } as any)
       .rpc();
 
     // Try execute immediately (should fail)
@@ -580,7 +580,7 @@ describe("QPL Extended Test Suite", () => {
           stakeVault: vaultPda,
           treasury: treasury,
           config: configPda,
-        })
+        } as any)
         .rpc();
       expect.fail("Should have rejected early execute");
     } catch (err: any) {
@@ -605,7 +605,7 @@ describe("QPL Extended Test Suite", () => {
         operator: nobody.publicKey,
         earnings: earningsPda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
 
     // Fund nobody so they can be a signer
@@ -627,7 +627,7 @@ describe("QPL Extended Test Suite", () => {
           operator: nobody.publicKey,
           earnings: earningsPda,
           feeVault: feeVaultPda,
-        })
+        } as any)
         .signers([nobody])
         .rpc();
       expect.fail("Should have rejected nothing to claim");
@@ -679,7 +679,7 @@ describe("QPL Extended Test Suite", () => {
           feeVault: feeVaultPda,
           treasury: treasury,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .signers([fakeGov])
         .rpc();
       expect.fail("Should have rejected unauthorized");

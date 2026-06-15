@@ -31,9 +31,9 @@
 
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { QplStaking } from "../target/types/qpl_staking";
-import { QplFeeRouter } from "../target/types/qpl_fee_router";
-import { QplRegistry } from "../target/types/qpl_registry";
+import { QplStaking } from "../../target/types/qpl_staking";
+import { QplFeeRouter } from "../../target/types/qpl_fee_router";
+import { QplRegistry } from "../../target/types/qpl_registry";
 import {
   LAMPORTS_PER_SOL,
   PublicKey,
@@ -119,7 +119,7 @@ describe("QPL Testnet Smoke Test", () => {
           config: configPda,
           governance: authority.publicKey,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .rpc();
       logTx("init_staking_config", sig);
     } catch (err: any) {
@@ -151,7 +151,7 @@ describe("QPL Testnet Smoke Test", () => {
           stakeVault: vaultPda,
           authority: authority.publicKey,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .rpc();
       logTx("init_stake_vault", sig);
     } catch (err: any) {
@@ -182,7 +182,7 @@ describe("QPL Testnet Smoke Test", () => {
           config: feeConfigPda,
           governance: authority.publicKey,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .rpc();
       logTx("init_fee_router_config", sig);
     } catch (err: any) {
@@ -220,7 +220,7 @@ describe("QPL Testnet Smoke Test", () => {
           feeVault: feeVaultPda,
           governance: authority.publicKey,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .rpc();
       logTx("init_fee_vault", sig);
     } catch (err: any) {
@@ -260,12 +260,12 @@ describe("QPL Testnet Smoke Test", () => {
 
     try {
       const sig = await registry.methods
-        .register(operatorId, OPERATOR_ENDPOINT, SERVICE_SIGNING | SERVICE_PROVING)
+        .register(Array.from(operatorId), OPERATOR_ENDPOINT, SERVICE_SIGNING | SERVICE_PROVING)
         .accounts({
           operator: operatorKeypair.publicKey,
           registryEntry: registryPda,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .signers([operatorKeypair])
         .rpc();
       logTx("registry_register", sig);
@@ -318,7 +318,7 @@ describe("QPL Testnet Smoke Test", () => {
           operatorAccount: operatorPda,
           stakeVault: vaultPda,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .signers([operatorKeypair])
         .rpc();
 
@@ -378,7 +378,7 @@ describe("QPL Testnet Smoke Test", () => {
           operatorAccount: operatorPda,
           stakeVault: vaultPda,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .signers([underfundedOp])
         .rpc();
       expect.fail("Should have rejected insufficient stake");
@@ -413,7 +413,7 @@ describe("QPL Testnet Smoke Test", () => {
         operatorAccount: operatorPda,
         stakeVault: vaultPda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .signers([operatorKeypair])
       .rpc();
 
@@ -492,7 +492,7 @@ describe("QPL Testnet Smoke Test", () => {
         protocolBalance: protocolBalancePda,
         feeVault: feeVaultPda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .signers([protocolKeypair])
       .rpc();
 

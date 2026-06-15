@@ -3,6 +3,7 @@
 // they are not produced by code in this crate. Allow only this lint so the
 // `-D warnings` clippy gate stays meaningful for everything else.
 #![allow(unexpected_cfgs)]
+#![allow(deprecated)] // Anchor 0.31 macros use AccountInfo::realloc (deprecated in favor of resize)
 
 use anchor_lang::prelude::*;
 use anchor_lang::AccountDeserialize;

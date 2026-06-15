@@ -1,4 +1,5 @@
 #![allow(unexpected_cfgs)]
+#![allow(deprecated)] // Anchor 0.31 macros use AccountInfo::realloc (deprecated in favor of resize)
 
 use anchor_lang::prelude::*;
 use solana_security_txt::security_txt;
