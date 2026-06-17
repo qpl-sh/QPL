@@ -6,9 +6,9 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-qpl-crypto = { path = "../../crates/qpl-crypto" }
-qpl-stark-rollup = { path = "../../crates/qpl-stark-rollup" }
-qpl-network = { path = "../../crates/qpl-network" }
-qpl-sdk = { path = "../../crates/qpl-sdk" }
+qpl-crypto = { path = "../../crates/qpl-crypto", version = "0.1.0" }
+qpl-stark-rollup = { path = "../../crates/qpl-stark-rollup", version = "0.1.0" }
+qpl-network = { path = "../../crates/qpl-network", version = "0.1.0" }
+qpl-sdk = { path = "../../crates/qpl-sdk", version = "0.1.0" }
 tokio = { version = "1", features = ["full"] }
 chrono = "0.4"

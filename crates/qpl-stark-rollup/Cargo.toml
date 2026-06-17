@@ -13,7 +13,7 @@ homepage = "https://github.com/jnodes/sovereign-quantum-ledger"
 winterfell = "0.9"
 
 # Post-quantum cryptography
-qpl-crypto = { path = "../qpl-crypto" }
+qpl-crypto = { path = "../qpl-crypto", version = "0.1.0" }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

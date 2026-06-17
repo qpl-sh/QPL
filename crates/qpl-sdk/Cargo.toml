@@ -9,7 +9,7 @@ authors.workspace = true
 homepage.workspace = true
 
 [dependencies]
-qpl-network = { path = "../qpl-network" }
+qpl-network = { path = "../qpl-network", version = "0.1.0" }
 
 tokio = { version = "1", features = ["full"] }
 tonic = "0.12"

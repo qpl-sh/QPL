@@ -13,9 +13,9 @@ name = "qpl-node"
 path = "src/main.rs"
 
 [dependencies]
-qpl-network = { path = "../../crates/qpl-network" }
-qpl-crypto = { path = "../../crates/qpl-crypto" }
-qpl-stark-rollup = { path = "../../crates/qpl-stark-rollup" }
+qpl-network = { path = "../../crates/qpl-network", version = "0.1.0" }
+qpl-crypto = { path = "../../crates/qpl-crypto", version = "0.1.0" }
+qpl-stark-rollup = { path = "../../crates/qpl-stark-rollup", version = "0.1.0" }
 
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
