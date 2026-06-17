@@ -10,19 +10,22 @@ cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/solana/**/*.ts"
+test = "python3 scripts/patch-elf-osabi.py && yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/solana/**/*.ts"
+
+[test]
+startup_wait = 15000
 
 [programs.localnet]
-qpl_staking = "4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn"
-qpl_fee_router = "71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW"
-qpl_registry = "CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7"
+qpl_staking = "9DmCATdxNo1QLS3bif7nTVJcvFEzG8mghR4bLXgHfsGu"
+qpl_fee_router = "FL2KNzTUL2rhSCFVCcmDYpJmgSW1GNUjYUMKX1r58Zh"
+qpl_registry = "8FaFN269AgeLC7ePuuPi1ZKBywJFVA8Jke3F2UfuhmGC"
 
 [programs.devnet]
-qpl_staking = "4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn"
-qpl_fee_router = "71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW"
-qpl_registry = "CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7"
+qpl_staking = "9DmCATdxNo1QLS3bif7nTVJcvFEzG8mghR4bLXgHfsGu"
+qpl_fee_router = "FL2KNzTUL2rhSCFVCcmDYpJmgSW1GNUjYUMKX1r58Zh"
+qpl_registry = "8FaFN269AgeLC7ePuuPi1ZKBywJFVA8Jke3F2UfuhmGC"
 
 [programs.testnet]
-qpl_staking = "4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn"
-qpl_fee_router = "71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW"
-qpl_registry = "CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7"
+qpl_staking = "9DmCATdxNo1QLS3bif7nTVJcvFEzG8mghR4bLXgHfsGu"
+qpl_fee_router = "FL2KNzTUL2rhSCFVCcmDYpJmgSW1GNUjYUMKX1r58Zh"
+qpl_registry = "8FaFN269AgeLC7ePuuPi1ZKBywJFVA8Jke3F2UfuhmGC"

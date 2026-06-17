@@ -17,7 +17,7 @@ security_txt! {
 #[used]
 static SECURITY_TXT_KEEP: &str = SECURITY_TXT;
 
-declare_id!("CR72aZV3DdD6U7gPo9FYKf22C1tyz9RPufSWddyMeDH7");
+declare_id!("8FaFN269AgeLC7ePuuPi1ZKBywJFVA8Jke3F2UfuhmGC");
 
 /// Service type bitmask values (matches qpl-network/src/types.rs)
 pub const SERVICE_SIGNING: u32 = 1 << 1;  // 0x02

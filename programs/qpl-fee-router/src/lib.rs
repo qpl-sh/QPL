@@ -23,7 +23,7 @@ security_txt! {
 #[used]
 static SECURITY_TXT_KEEP: &str = SECURITY_TXT;
 
-declare_id!("71U4cD7FpKz9epyFNMd4hZLUnY2Qe7WfQzQdrZgmyHrW");
+declare_id!("FL2KNzTUL2rhSCFVCcmDYpJmgSW1GNUjYUMKX1r58Zh");
 
 /// Fee split constants (must sum to 100)
 pub const COORDINATOR_SHARE_PCT: u8 = 40;

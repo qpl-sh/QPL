@@ -17,7 +17,7 @@ security_txt! {
 #[used]
 static SECURITY_TXT_KEEP: &str = SECURITY_TXT;
 
-declare_id!("4Q2Np8kL6DWL8tPkApRCfGYvGaPsBSD11BC3rioBSWFn");
+declare_id!("9DmCATdxNo1QLS3bif7nTVJcvFEzG8mghR4bLXgHfsGu");
 
 /// Minimum stake: 10 SOL (in lamports).
 /// At 10K sigs/day revenue (~$210/day), 10 SOL ≈ 3.2 days of revenue at risk.

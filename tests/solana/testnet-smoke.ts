@@ -139,6 +139,10 @@ describe("QPL Testnet Smoke Test", () => {
   // 2. Initialize stake vault
   // -----------------------------------------------------------------------
   it("2. Initialize stake vault", async () => {
+    const [configPda] = PublicKey.findProgramAddressSync(
+      [CONFIG_SEED],
+      staking.programId
+    );
     const [vaultPda] = PublicKey.findProgramAddressSync(
       [VAULT_SEED],
       staking.programId
@@ -148,6 +152,7 @@ describe("QPL Testnet Smoke Test", () => {
       const sig = await staking.methods
         .initializeVault()
         .accounts({
+          config: configPda,
           stakeVault: vaultPda,
           authority: authority.publicKey,
           systemProgram: SystemProgram.programId,
@@ -254,7 +259,7 @@ describe("QPL Testnet Smoke Test", () => {
       await provider.connection.confirmTransaction(transferSig);
 
     const [registryPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("registry"), Buffer.from(operatorId)],
+      [Buffer.from("registry"), operatorKeypair.publicKey.toBuffer()],
       registry.programId
     );
 
@@ -513,7 +518,7 @@ describe("QPL Testnet Smoke Test", () => {
       return;
     }
     const [registryPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("registry"), Buffer.from(operatorId)],
+      [Buffer.from("registry"), operatorKeypair.publicKey.toBuffer()],
       registry.programId
     );
 
@@ -542,7 +547,7 @@ describe("QPL Testnet Smoke Test", () => {
       return;
     }
     const [registryPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("registry"), Buffer.from(operatorId)],
+      [Buffer.from("registry"), operatorKeypair.publicKey.toBuffer()],
       registry.programId
     );
 
