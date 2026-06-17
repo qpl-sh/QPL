@@ -29,10 +29,23 @@ pub async fn handle_prove(
         "Processing prove request"
     );
 
-    // Step 1: Verify fee
+    // Step 1: Verify fee payment proof
+    // [QPL-004] Validate tx signature format (base58-encoded, 87-88 chars for Solana)
     if req.fee_proof_tx.is_empty() {
         return Err("fee_proof_tx is required".into());
     }
+    let tx_len = req.fee_proof_tx.len();
+    if tx_len < 32 || tx_len > 128 {
+        return Err(format!(
+            "fee_proof_tx has invalid length {} (expected 32-128 base58 chars)",
+            tx_len
+        )
+        .into());
+    }
+    if !req.fee_proof_tx.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return Err("fee_proof_tx contains invalid characters (expected base58)".into());
+    }
+    // TODO: Verify tx on-chain via Solana RPC (confirm signature, check fee amount)
 
     // Step 2: Deserialize transactions from JSON
     let transactions: Vec<Transaction> = serde_json::from_slice(&req.transactions)
@@ -42,12 +55,9 @@ pub async fn handle_prove(
         return Err("transaction batch must not be empty".into());
     }
 
-    // Step 3: Select security level based on requested bits
-    let security_level = if req.security_bits >= 128 {
-        SecurityLevel::High128
-    } else {
-        SecurityLevel::Standard96
-    };
+    // Step 3: Enforce minimum High128 security level
+    // [QPL-010] Ignore client-supplied security_bits — always use production-grade
+    let security_level = SecurityLevel::High128;
 
     let config = StarkProofConfig::new(security_level);
     let prover = SettlementProver::new(config);

@@ -325,6 +325,7 @@ pub struct DepositBalance<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(amount: u64, coordinator: Pubkey)]
 pub struct ChargeFee<'info> {
     #[account(mut)]
     pub governance: Signer<'info>,
@@ -337,14 +338,18 @@ pub struct ChargeFee<'info> {
     )]
     pub config: Account<'info, FeeRouterConfig>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [b"balance", protocol_balance.protocol.as_ref()],
+        bump
+    )]
     pub protocol_balance: Account<'info, ProtocolBalance>,
 
     #[account(
         init_if_needed,
         payer = governance,
         space = OperatorEarnings::SPACE,
-        seeds = [b"earnings", protocol_balance.protocol.as_ref()],
+        seeds = [b"earnings", coordinator.as_ref()],
         bump
     )]
     pub coordinator_earnings: Account<'info, OperatorEarnings>,

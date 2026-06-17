@@ -123,6 +123,11 @@ pub mod qpl_staking {
 
         require!(operator_account.staked_amount > 0, QplStakingError::NothingStaked);
         require!(operator_account.unstake_time == 0, QplStakingError::AlreadyUnstaking);
+        // [QPL-001] Block unstaking while a slash is pending to prevent evasion
+        require!(
+            operator_account.pending_slash_amount == 0,
+            QplStakingError::SlashPending
+        );
 
         let clock = Clock::get()?;
         operator_account.active = false;
@@ -147,8 +152,16 @@ pub mod qpl_staking {
             QplStakingError::UnbondingNotElapsed
         );
 
-        let amount = operator_account.staked_amount;
+        // [QPL-001] Deduct any pending slash from withdrawal amount before transfer
+        let slash_deduction = operator_account.pending_slash_amount;
+        let amount = operator_account
+            .staked_amount
+            .checked_sub(slash_deduction)
+            .ok_or(QplStakingError::SlashExceedsStake)?;
         operator_account.staked_amount = 0;
+        operator_account.pending_slash_amount = 0;
+        operator_account.pending_slash_reason = String::new();
+        operator_account.slash_initiated_at = 0;
 
         // Transfer SOL from vault back to operator (checked arithmetic for defense-in-depth)
         let vault_info = ctx.accounts.stake_vault.to_account_info();
@@ -314,7 +327,10 @@ pub mod qpl_staking {
         );
         anchor_lang::system_program::transfer(cpi_ctx, amount)?;
 
-        operator_account.staked_amount += amount;
+        operator_account.staked_amount = operator_account
+            .staked_amount
+            .checked_add(amount)
+            .ok_or(QplStakingError::Overflow)?;
 
         // Reactivate if above minimum and not in unbonding
         if operator_account.staked_amount >= MIN_STAKE_LAMPORTS {
@@ -636,6 +652,8 @@ pub enum QplStakingError {
     InsufficientVaultBalance,
     #[msg("Arithmetic overflow")]
     Overflow,
+    #[msg("Cannot unstake while a slash is pending")]
+    SlashPending,
     #[msg("No pending slash to execute")]
     NoPendingSlash,
     #[msg("Dispute window has not elapsed")]

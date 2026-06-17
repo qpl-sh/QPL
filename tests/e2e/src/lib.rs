@@ -15,7 +15,9 @@ mod tests {
         let req_id = RequestId::new();
         let quorum = QuorumRequirement::three_of_five();
 
-        let estimate = calc.estimate(req_id, &FeeOperation::Sign, Some(quorum), Urgency::Standard);
+        let estimate = calc
+            .estimate(req_id, &FeeOperation::Sign, Some(quorum), Urgency::Standard)
+            .unwrap();
 
         // Base signing fee = $0.025 * 3 operators * 1.0x urgency = $0.075
         assert_eq!(estimate.base_fee, 25_000);

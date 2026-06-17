@@ -93,4 +93,7 @@ pub enum NetworkError {
         expected_gt: u64,
         got: u64,
     },
+
+    #[error("arithmetic overflow in fee calculation: {0}")]
+    ArithmeticOverflow(String),
 }

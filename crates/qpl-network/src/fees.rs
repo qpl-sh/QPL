@@ -119,20 +119,28 @@ impl FeeCalculator {
         operation: &FeeOperation,
         quorum: Option<QuorumRequirement>,
         urgency: Urgency,
-    ) -> FeeEstimate {
+    ) -> Result<FeeEstimate, NetworkError> {
         let base_fee = self.base_fee_for(operation);
         let threshold = quorum.map(|q| q.threshold).unwrap_or(1) as u64;
         let urgency_pct = urgency.multiplier_pct();
 
-        // Deterministic integer math: base * threshold * urgency_pct / 100
-        let total = base_fee * threshold * urgency_pct / 100;
+        // [QPL-006] Deterministic integer math with checked arithmetic
+        let total = base_fee
+            .checked_mul(threshold)
+            .and_then(|v| v.checked_mul(urgency_pct))
+            .and_then(|v| v.checked_div(100))
+            .ok_or_else(|| {
+                NetworkError::ArithmeticOverflow(format!(
+                    "fee estimate overflow: base_fee={base_fee}, threshold={threshold}, urgency_pct={urgency_pct}"
+                ))
+            })?;
         let operator_count = quorum.map(|q| q.threshold).unwrap_or(1);
 
         // Derive floating-point multipliers for display only
         let quorum_multiplier = threshold as f64;
         let urgency_multiplier = urgency_pct as f64 / 100.0;
 
-        FeeEstimate {
+        Ok(FeeEstimate {
             quote_id: Uuid::new_v4(),
             request_id,
             base_fee,
@@ -141,7 +149,7 @@ impl FeeCalculator {
             total_fee: total,
             operator_count,
             expires_at: Utc::now() + Duration::seconds(self.quote_expiry_secs as i64),
-        }
+        })
     }
 
     /// Validates that a fee quote has not expired.
@@ -156,22 +164,38 @@ impl FeeCalculator {
     }
 
     /// Calculates how to split a paid fee among participants.
-    pub fn split_fee(&self, total_fee: u64, participant_count: u8) -> FeeSplit {
-        let coordinator_amount = total_fee * COORDINATOR_SHARE_PCT as u64 / 100;
-        let treasury_amount = total_fee * TREASURY_SHARE_PCT as u64 / 100;
-        let participant_pool = total_fee - coordinator_amount - treasury_amount;
+    pub fn split_fee(
+        &self,
+        total_fee: u64,
+        participant_count: u8,
+    ) -> Result<FeeSplit, NetworkError> {
+        // [QPL-006] Checked arithmetic for fee distribution
+        let coordinator_amount = total_fee
+            .checked_mul(COORDINATOR_SHARE_PCT as u64)
+            .and_then(|v| v.checked_div(100))
+            .ok_or_else(|| NetworkError::ArithmeticOverflow("coordinator share".into()))?;
+        let treasury_amount = total_fee
+            .checked_mul(TREASURY_SHARE_PCT as u64)
+            .and_then(|v| v.checked_div(100))
+            .ok_or_else(|| NetworkError::ArithmeticOverflow("treasury share".into()))?;
+        let participant_pool = total_fee
+            .checked_sub(coordinator_amount)
+            .and_then(|v| v.checked_sub(treasury_amount))
+            .ok_or_else(|| NetworkError::ArithmeticOverflow("participant pool".into()))?;
         let per_participant = if participant_count > 0 {
-            participant_pool / participant_count as u64
+            participant_pool
+                .checked_div(participant_count as u64)
+                .ok_or_else(|| NetworkError::ArithmeticOverflow("per-participant split".into()))?
         } else {
             0
         };
 
-        FeeSplit {
+        Ok(FeeSplit {
             coordinator_amount,
             per_participant_amount: per_participant,
             participant_count,
             treasury_amount,
-        }
+        })
     }
 
     /// Returns the base fee (USD micro-units) for an operation.
@@ -213,12 +237,14 @@ mod tests {
     #[test]
     fn test_fee_estimate_basic() {
         let calc = FeeCalculator::default();
-        let estimate = calc.estimate(
-            RequestId::new(),
-            &FeeOperation::Sign,
-            Some(QuorumRequirement::three_of_five()),
-            Urgency::Standard,
-        );
+        let estimate = calc
+            .estimate(
+                RequestId::new(),
+                &FeeOperation::Sign,
+                Some(QuorumRequirement::three_of_five()),
+                Urgency::Standard,
+            )
+            .unwrap();
 
         // base $0.025 * 3 operators * 1.0 urgency = $0.075
         assert_eq!(estimate.total_fee, 75_000);
@@ -228,12 +254,14 @@ mod tests {
     #[test]
     fn test_fee_estimate_with_urgency() {
         let calc = FeeCalculator::default();
-        let estimate = calc.estimate(
-            RequestId::new(),
-            &FeeOperation::Sign,
-            Some(QuorumRequirement::three_of_five()),
-            Urgency::Instant,
-        );
+        let estimate = calc
+            .estimate(
+                RequestId::new(),
+                &FeeOperation::Sign,
+                Some(QuorumRequirement::three_of_five()),
+                Urgency::Instant,
+            )
+            .unwrap();
 
         // base $0.025 * 3 operators * 2.0 urgency = $0.150
         assert_eq!(estimate.total_fee, 150_000);
@@ -242,7 +270,7 @@ mod tests {
     #[test]
     fn test_fee_split() {
         let calc = FeeCalculator::default();
-        let split = calc.split_fee(10_000, 2); // $0.01 total, 2 participants
+        let split = calc.split_fee(10_000, 2).unwrap(); // $0.01 total, 2 participants
 
         assert_eq!(split.coordinator_amount, 4_000); // 40%
         assert_eq!(split.treasury_amount, 1_000); // 10%
@@ -254,12 +282,14 @@ mod tests {
     #[test]
     fn test_fee_quote_expiry() {
         let calc = FeeCalculator::new(FeeSchedule::default(), 60);
-        let estimate = calc.estimate(
-            RequestId::new(),
-            &FeeOperation::Sign,
-            None,
-            Urgency::Standard,
-        );
+        let estimate = calc
+            .estimate(
+                RequestId::new(),
+                &FeeOperation::Sign,
+                None,
+                Urgency::Standard,
+            )
+            .unwrap();
 
         // Fresh quote should be valid
         assert!(calc.validate_quote(&estimate).is_ok());

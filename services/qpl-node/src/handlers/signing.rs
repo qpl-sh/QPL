@@ -29,10 +29,23 @@ pub async fn handle_sign(
         "Processing sign request"
     );
 
-    // Step 1: Verify fee (simplified — check tx hash is non-empty)
+    // Step 1: Verify fee payment proof
+    // [QPL-004] Validate tx signature format (base58-encoded, 87-88 chars for Solana)
     if req.fee_proof_tx.is_empty() {
         return Err("fee_proof_tx is required".into());
     }
+    let tx_len = req.fee_proof_tx.len();
+    if tx_len < 32 || tx_len > 128 {
+        return Err(format!(
+            "fee_proof_tx has invalid length {} (expected 32-128 base58 chars)",
+            tx_len
+        )
+        .into());
+    }
+    if !req.fee_proof_tx.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return Err("fee_proof_tx contains invalid characters (expected base58)".into());
+    }
+    // TODO: Verify tx on-chain via Solana RPC (confirm signature, check fee amount)
 
     // Step 2-5: Single-operator ML-DSA-65 signature.
     // Full threshold coordination (multi-operator) is a future enhancement.
