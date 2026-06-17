@@ -50,3 +50,6 @@ programs/**/target/
 # QPL testnet
 program-keypairs/
 scripts/deploy-*.log
+
+# Screenshots
+*.png
