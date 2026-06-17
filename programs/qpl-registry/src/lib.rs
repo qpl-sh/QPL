@@ -105,7 +105,6 @@ pub mod qpl_registry {
 // ─── Accounts ────────────────────────────────────────────────────────────────
 
 #[derive(Accounts)]
-#[instruction(operator_id: [u8; 32])]
 pub struct Register<'info> {
     #[account(mut)]
     pub operator: Signer<'info>,
@@ -114,7 +113,10 @@ pub struct Register<'info> {
         init,
         payer = operator,
         space = RegistryEntry::SPACE,
-        seeds = [b"registry", operator_id.as_ref()],
+        // [QPL-007] Derive PDA from operator wallet key to prevent front-running.
+        // An attacker cannot register under the same wallet, and only the wallet
+        // owner can create the PDA.
+        seeds = [b"registry", operator.key().as_ref()],
         bump
     )]
     pub registry_entry: Account<'info, RegistryEntry>,

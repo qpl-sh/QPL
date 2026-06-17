@@ -372,6 +372,14 @@ pub struct InitializeVault<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
+    // [QPL-011] Restrict vault initialization to the configured governance authority
+    #[account(
+        seeds = [b"config"],
+        bump = config.bump,
+        constraint = authority.key() == config.governance @ QplStakingError::Unauthorized
+    )]
+    pub config: Account<'info, StakingConfig>,
+
     #[account(
         init,
         payer = authority,

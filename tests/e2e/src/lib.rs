@@ -49,6 +49,7 @@ mod tests {
                     shard_index: 0,
                     payload: vec![0xAA],
                     received_at: Utc::now(),
+                    signature: vec![0x01],
                 },
             )
             .unwrap();
@@ -62,6 +63,7 @@ mod tests {
                     shard_index: 1,
                     payload: vec![0xBB],
                     received_at: Utc::now(),
+                    signature: vec![0x02],
                 },
             )
             .unwrap();
@@ -75,6 +77,7 @@ mod tests {
                     shard_index: 2,
                     payload: vec![0xCC],
                     received_at: Utc::now(),
+                    signature: vec![0x03],
                 },
             )
             .unwrap();

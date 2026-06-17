@@ -44,6 +44,8 @@ pub enum ExecutionError {
     },
     /// Batch cannot be empty.
     BatchEmpty,
+    /// [QPL-009] Arithmetic overflow in balance computation.
+    Overflow { account: AccountId },
 }
 
 impl fmt::Display for ExecutionError {
@@ -88,6 +90,9 @@ impl fmt::Display for ExecutionError {
                 )
             }
             ExecutionError::BatchEmpty => write!(f, "Batch cannot be empty"),
+            ExecutionError::Overflow { account } => {
+                write!(f, "Arithmetic overflow for account: {}", account)
+            }
         }
     }
 }
@@ -361,7 +366,11 @@ impl StateExecutor {
         // Add amount to receiver balance (create account if needed)
         {
             let receiver_account = state.get_or_create_account(&tx.receiver);
-            receiver_account.balance = receiver_account.balance.saturating_add(tx.amount);
+            receiver_account.balance = receiver_account.balance.checked_add(tx.amount).ok_or(
+                ExecutionError::Overflow {
+                    account: tx.receiver.clone(),
+                },
+            )?;
         }
 
         Ok(())
@@ -534,7 +543,15 @@ impl StateExecutorWithHooks {
         for (idx, tx) in txs.iter().enumerate() {
             match TransactionValidator::validate_transaction(tx, state) {
                 Ok(()) => {
-                    // Execute the transaction
+                    // [QPL-009] Execute with checked arithmetic;
+                    // reject on overflow instead of silent truncation.
+                    let receiver_account = state.get_or_create_account(&tx.receiver);
+                    if receiver_account.balance.checked_add(tx.amount).is_none() {
+                        rejected_count += 1;
+                        rejections.push((idx, format!("overflow crediting {}", tx.receiver)));
+                        continue;
+                    }
+
                     {
                         let sender_account = state.get_or_create_account(&tx.sender);
                         sender_account.balance = sender_account.balance.saturating_sub(tx.amount);
@@ -543,8 +560,10 @@ impl StateExecutorWithHooks {
 
                     {
                         let receiver_account = state.get_or_create_account(&tx.receiver);
-                        receiver_account.balance =
-                            receiver_account.balance.saturating_add(tx.amount);
+                        receiver_account.balance = receiver_account
+                            .balance
+                            .checked_add(tx.amount)
+                            .expect("overflow already checked above");
                     }
 
                     // Get new balances for hook notification

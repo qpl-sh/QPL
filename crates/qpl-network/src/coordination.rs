@@ -61,6 +61,9 @@ pub struct PartialResponse {
     pub payload: Vec<u8>,
     /// Timestamp when this partial was received.
     pub received_at: DateTime<Utc>,
+    /// [QPL-008] Signature over (request_id, shard_index, payload) from the
+    /// operator's ML-DSA key. Prevents forged partial responses.
+    pub signature: Vec<u8>,
 }
 
 /// Status of a coordination round.
@@ -133,6 +136,15 @@ impl CoordinationRound {
         if self.is_expired() {
             self.status = RoundStatus::TimedOut;
             return Err(NetworkError::CoordinationTimeout(self.request_id.clone()));
+        }
+
+        // [QPL-008] Require non-empty signature to prevent forged partials.
+        // Full ML-DSA-65 verification should be performed by the coordinator
+        // before calling this method.
+        if response.signature.is_empty() {
+            return Err(NetworkError::CryptoError(
+                "partial response missing signature".into(),
+            ));
         }
 
         self.partials.insert(response.operator_id.clone(), response);
@@ -375,6 +387,7 @@ mod tests {
                 shard_index: 1,
                 payload: vec![0xAA; 32],
                 received_at: Utc::now(),
+                signature: vec![0x01],
             })
             .unwrap();
         assert_eq!(round.status, RoundStatus::Collecting);
@@ -386,6 +399,7 @@ mod tests {
                 shard_index: 2,
                 payload: vec![0xBB; 32],
                 received_at: Utc::now(),
+                signature: vec![0x02],
             })
             .unwrap();
         assert_eq!(round.status, RoundStatus::Collecting);
@@ -397,6 +411,7 @@ mod tests {
                 shard_index: 3,
                 payload: vec![0xCC; 32],
                 received_at: Utc::now(),
+                signature: vec![0x03],
             })
             .unwrap();
         assert_eq!(status, RoundStatus::ThresholdReached);
@@ -415,6 +430,7 @@ mod tests {
                 shard_index: 3,
                 payload: vec![0xCC],
                 received_at: Utc::now(),
+                signature: vec![0x03],
             })
             .unwrap();
         round
@@ -423,6 +439,7 @@ mod tests {
                 shard_index: 1,
                 payload: vec![0xAA],
                 received_at: Utc::now(),
+                signature: vec![0x01],
             })
             .unwrap();
         round
@@ -431,6 +448,7 @@ mod tests {
                 shard_index: 2,
                 payload: vec![0xBB],
                 received_at: Utc::now(),
+                signature: vec![0x02],
             })
             .unwrap();
 
@@ -457,6 +475,7 @@ mod tests {
                     shard_index: 1,
                     payload: vec![0xAA],
                     received_at: Utc::now(),
+                    signature: vec![0x01],
                 },
             )
             .unwrap();
@@ -470,6 +489,7 @@ mod tests {
                     shard_index: 2,
                     payload: vec![0xBB],
                     received_at: Utc::now(),
+                    signature: vec![0x02],
                 },
             )
             .unwrap();

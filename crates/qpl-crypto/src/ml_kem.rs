@@ -240,15 +240,23 @@ impl std::fmt::Debug for SharedSecret {
 
 impl PartialEq for SharedSecret {
     fn eq(&self, other: &Self) -> bool {
-        // Constant-time comparison to prevent timing attacks
-        if self.bytes.len() != other.bytes.len() {
-            return false;
+        // [QPL-012] Constant-time comparison without length short-circuit.
+        // ML-KEM-1024 shared secrets are always 32 bytes, but we avoid leaking
+        // length information via timing even if the invariant were violated.
+        let len_a = self.bytes.len();
+        let len_b = other.bytes.len();
+        let min_len = len_a.min(len_b);
+
+        // XOR all bytes up to the shorter length
+        let mut diff = 0u8;
+        for i in 0..min_len {
+            diff |= self.bytes[i] ^ other.bytes[i];
         }
-        let mut result = 0u8;
-        for (a, b) in self.bytes.iter().zip(other.bytes.iter()) {
-            result |= a ^ b;
+        // If lengths differ, set all bits (guarantees non-zero result)
+        if len_a != len_b {
+            diff |= 0xFF;
         }
-        result == 0
+        diff == 0
     }
 }
 
