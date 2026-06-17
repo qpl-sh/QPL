@@ -144,8 +144,8 @@ mod tests {
 
         // Manually compute expected root
         let mut hasher = Sha256::new();
-        hasher.update(&leaf1);
-        hasher.update(&leaf2);
+        hasher.update(leaf1);
+        hasher.update(leaf2);
         let expected: [u8; 32] = hasher.finalize().into();
 
         assert_eq!(root, expected);

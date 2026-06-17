@@ -35,7 +35,7 @@ pub async fn handle_prove(
         return Err("fee_proof_tx is required".into());
     }
     let tx_len = req.fee_proof_tx.len();
-    if tx_len < 32 || tx_len > 128 {
+    if !(32..=128).contains(&tx_len) {
         return Err(format!(
             "fee_proof_tx has invalid length {} (expected 32-128 base58 chars)",
             tx_len

@@ -7,7 +7,7 @@
 //! the exploit is REJECTED by the hardened code.
 
 #[cfg(test)]
-mod red_team_tests {
+mod tests {
     use crate::air::SettlementPublicInputs;
     use crate::executor::{NonceRegistry, TransactionValidator};
     use crate::prover::{ProofConfig, SecurityLevel, SettlementProver};

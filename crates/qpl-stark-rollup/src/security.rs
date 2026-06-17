@@ -390,6 +390,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn test_security_constants() {
         // Verify constants are reasonable values
         assert!(SECURITY_LEVEL_BITS >= 80);
@@ -441,6 +442,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn test_performance_targets() {
         use performance_targets::*;
 
@@ -452,6 +454,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn test_security_params() {
         use security_params::*;
 
