@@ -174,19 +174,27 @@ From the existing financial model (`financial-projection-3yr.md`):
 
 ## 5. Futard.io Launch Structure
 
-### Recommended Tokenomics
+### Recommended Tokenomics (Corrected for Futard.io Mechanics)
 
 **Total token supply:** 100M QPL  
-**ICO allocation:** 15M tokens (15%)  
-**Performance package:** 5M tokens (5%) — rewards for hitting milestones  
-**Liquidity:** 3M tokens (3%) — initial DEX liquidity  
-**Team:** 20M tokens (20%) — 2-year vest, 6-month cliff  
-**Treasury/DAO:** 57M tokens (57%) — governed by token holders
+**ICO allocation:** 30M tokens (30%) — what participants buy at ICO price  
+**Performance package:** 30M tokens (30%) — unlocks at **price targets** (2x, 4x, 8x, 16x, 32x ICO price)  
+**Liquidity:** 10M tokens (10%) — split between Futarchy AMM + Meteora pool  
+**Team:** 30M tokens (30%) — 2-year vest, 6-month cliff
 
 **Raise amount:** $750K USDC  
-**ICO price:** $0.05/token  
-**FDV at ICO:** $5M (100M tokens × $0.05)  
-**Performance package:** 5M tokens released on milestone achievement
+**ICO price:** $0.025/token  
+**FDV at ICO:** $2.5M (100M tokens × $0.025)
+
+**Performance package unlock schedule (price-based, 18-month cliff):**
+- 6M tokens unlock at 2x ICO price ($0.05)
+- 6M tokens unlock at 4x ICO price ($0.10)
+- 6M tokens unlock at 8x ICO price ($0.20)
+- 6M tokens unlock at 16x ICO price ($0.40)
+- 6M tokens unlock at 32x ICO price ($0.80)
+- **All after 18-month cliff** — team only benefits if token price appreciates significantly
+
+**Key insight:** Performance package is **price-based**, not milestone-based. This aligns team incentives with token holders — team only gets performance tokens if the price goes up 2x-32x from ICO.
 
 ### Monthly Spending Limit
 
@@ -198,18 +206,20 @@ From the existing financial model (`financial-projection-3yr.md`):
 - If treasury is self-sufficient, spending limit can be increased via governance
 - If not, team must demonstrate progress or seek additional funding
 
-### Milestone-Based Performance Package
+### Futard.io Performance Package (Price-Based Alignment)
 
-The 5M performance tokens are released on milestone achievement:
+The 30M performance tokens unlock at **price targets**, not milestones:
 
-| Milestone | Tokens Released | Trigger |
-|-----------|----------------|---------|
-| Testnet deployment + 3 anchor clients | 1M tokens | 3 protocols integrated on testnet |
-| Mainnet launch + 10 protocols | 1.5M tokens | 10 protocols live on mainnet |
-| $100K/month treasury income | 1.5M tokens | Treasury generating $100K/month |
-| 50 active operators | 1M tokens | 50 operators staked and active |
+| Price Target | Tokens Unlocked | Team Value | Trigger Condition |
+|--------------|----------------|------------|-------------------|
+| 2x ($0.05) | 6M tokens | $300K | Token doubles from ICO |
+| 4x ($0.10) | 6M tokens | $600K | 4× ICO price |
+| 8x ($0.20) | 6M tokens | $1.2M | 8× ICO price |
+| 16x ($0.40) | 6M tokens | $2.4M | 16× ICO price |
+| 32x ($0.80) | 6M tokens | $4.8M | 32× ICO price |
+| **Total** | **30M tokens** | **Up to $9.3M** | **All after 18-month cliff** |
 
-**Total:** 5M tokens over 12–18 months
+**Alignment mechanism:** Team only benefits if token price appreciates significantly. If token stays at or below ICO price, team gets zero performance tokens. This forces team to focus on long-term value creation, not short-term pumps.
 
 ---
 
