@@ -14,7 +14,7 @@ qpl-network = { path = "../qpl-network", version = "0.1.0" }
 tokio = { version = "1", features = ["full"] }
 tonic = "0.12"
 prost = "0.13"
-prost-types = "0.13"
+prost-types = "0.14"
 tower = { version = "0.4", features = ["timeout", "retry"] }
 tracing = "0.1"
 thiserror = "1"
