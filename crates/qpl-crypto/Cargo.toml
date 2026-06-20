@@ -36,7 +36,7 @@ uuid = { version = "1", features = ["v4"] }
 # once HSM firmware ships FIPS 204 mechanisms.
 ed25519-dalek = { version = "2.1", features = ["rand_core"] }
 p256 = { version = "0.13", features = ["ecdsa"] }
-rand_core = "0.6"
+rand_core = "0.10"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
