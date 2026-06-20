@@ -3,9 +3,9 @@ name = "qpl-crypto"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "Unified post-quantum cryptography library for Ligare (QPL). Implements ML-DSA-65 (FIPS 204) signing and ML-KEM-1024 (FIPS 203) key encapsulation with HSM abstraction."
+description = "Unified post-quantum cryptography library for QPL (Quantum Proof Layer). Implements ML-DSA-65 (FIPS 204) signing and ML-KEM-1024 (FIPS 203) key encapsulation with HSM abstraction."
 repository = "https://github.com/jnodes/sovereign-quantum-ledger"
-authors = ["Ligare Contributors"]
+authors = ["QPL Contributors"]
 homepage = "https://github.com/jnodes/sovereign-quantum-ledger"
 
 [features]

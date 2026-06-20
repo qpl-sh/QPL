@@ -3,9 +3,9 @@ name = "sql-types"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "Common types for Ligare (QPL)."
+description = "Common types for QPL (Quantum Proof Layer)."
 repository = "https://github.com/jnodes/sovereign-quantum-ledger"
-authors = ["Ligare Contributors"]
+authors = ["QPL Contributors"]
 homepage = "https://github.com/jnodes/sovereign-quantum-ledger"
 
 [dependencies]

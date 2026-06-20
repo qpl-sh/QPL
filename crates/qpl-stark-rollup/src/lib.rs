@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! # QPL STARK Rollup
 //!
-//! Native FRI-based zk-STARK rollup for Ligare (QPL).
+//! Native FRI-based zk-STARK rollup for QPL (Quantum Proof Layer).
 //! Implements quantum-secure settlement with Private Validium mode.
 //!
 //! ## Architecture

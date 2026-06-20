@@ -3,7 +3,7 @@
 //!
 //! This module provides a comprehensive test vector framework for validating the correctness
 //! of ML-DSA (digital signatures) and ML-KEM (key encapsulation) implementations used in
-//! Ligare (QPL).
+//! QPL (Quantum Proof Layer).
 //!
 //! # Overview
 //!
@@ -832,7 +832,7 @@ pub mod verification_notes {
     //! # Formal Verification and Security Notes
     //!
     //! This module documents the security properties, compliance status, and limitations
-    //! of the post-quantum cryptographic implementations used in Ligare (QPL).
+    //! of the post-quantum cryptographic implementations used in QPL (Quantum Proof Layer).
     //!
     //! ## Constant-Time Guarantees
     //!

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! # QPL Crypto
 //!
-//! Unified post-quantum cryptography library for Ligare (QPL).
+//! Unified post-quantum cryptography library for QPL (Quantum Proof Layer).
 //! Implements NIST-standardized PQC primitives as a reusable, blockchain-agnostic library.
 //!
 //! ## Modules

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Shared types for the Ligare (QPL) platform.
+//! Shared types for the QPL (Quantum Proof Layer) platform.
 //!
 //! This crate provides common type definitions used across all QPL crates,
 //! ensuring consistent representations for identifiers, assets, amounts,

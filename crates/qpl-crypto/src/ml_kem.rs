@@ -5,7 +5,7 @@
 //! the `pqcrypto-mlkem` crate's `mlkem1024` module. ML-KEM-1024 is the
 //! standardized successor name for Kyber-1024; the byte layout is identical, so
 //! historical Kyber-1024 test vectors continue to round-trip unchanged.
-//! It is part of the Ligare (QPL) post-quantum cryptographic foundation.
+//! It is part of the QPL (Quantum Proof Layer) post-quantum cryptographic foundation.
 //!
 //! ## Security Properties
 //!

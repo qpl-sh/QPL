@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! ML-DSA (FIPS 204) digital signature implementation at security level 3.
 //!
-//! This module is part of the Ligare (QPL) post-quantum cryptographic foundation.
+//! This module is part of the QPL (Quantum Proof Layer) post-quantum cryptographic foundation.
 //! It implements ML-DSA-65 (Module-Lattice Digital Signature Algorithm) which
 //! provides NIST security level 3 (equivalent to AES-192). The underlying
 //! implementation comes from the FIPS-validated `pqcrypto-mldsa` crate; outputs
