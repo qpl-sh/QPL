@@ -1,0 +1,9 @@
+# CODEOWNERS
+# Update these entries to specific users or teams responsible for directories/files.
+
+# Default owners for everything (replace with maintainers or a team):
+*    @qpl-sh
+
+# Example per-directory owners:
+# /src/ @qpl-sh
+# /docs/ @qpl-sh
