@@ -43,5 +43,5 @@ dashmap = "5"
 zeroize = { version = "1.7", features = ["derive"] }
 
 [dev-dependencies]
-rcgen = "0.13"
+rcgen = "0.14"
 tempfile = "3"
