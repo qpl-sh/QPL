@@ -12,5 +12,5 @@ homepage = "https://github.com/jnodes/sovereign-quantum-ledger"
 serde = { version = "1.0", features = ["derive"] }
 rust_decimal = { version = "1.33", features = ["serde-with-str"] }
 chrono = { version = "0.4", features = ["serde"] }
-thiserror = "1.0"
+thiserror = "2.0"
 hex = "0.4"
