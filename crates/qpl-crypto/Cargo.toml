@@ -28,7 +28,7 @@ zeroize = { version = "1.7", features = ["derive"] }
 thiserror = "1.0"
 async-trait = "0.1"
 hex = "0.4"
-cryptoki = { version = "0.7", optional = true }
+cryptoki = { version = "0.12", optional = true }
 uuid = { version = "1", features = ["v4"] }
 # Classical signing algorithms for HSM-native operation (FIPS 186-4 / RFC 8032).
 # These are HSM-native on all production HSMs as of 2026, allowing the signing
