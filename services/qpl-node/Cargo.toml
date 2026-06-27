@@ -30,7 +30,7 @@ uuid = { version = "1", features = ["v4"] }
 chrono = "0.4"
 hex = "0.4"
 sha2 = "0.10"
-rand = "0.8"
+rand = "0.10"
 thiserror = "1"
 
 # Security remediation deps (D-1, D-3, D-5, D-6)
