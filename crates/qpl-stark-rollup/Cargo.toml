@@ -10,7 +10,7 @@ homepage = "https://github.com/jnodes/sovereign-quantum-ledger"
 
 [dependencies]
 # STARK proof framework - FRI-based, no trusted setup
-winterfell = "0.9"
+winterfell = "0.13"
 
 # Post-quantum cryptography
 qpl-crypto = { path = "../qpl-crypto", version = "0.1.0" }
