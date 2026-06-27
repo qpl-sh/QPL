@@ -18,7 +18,7 @@ thiserror = "1"
 sha2 = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-rand = "0.8"
+rand = "0.10"
 rust_decimal = { version = "1", features = ["serde-with-str"] }
 hex = "0.4"
 
