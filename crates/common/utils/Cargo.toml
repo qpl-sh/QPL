@@ -11,5 +11,5 @@ homepage = "https://github.com/jnodes/sovereign-quantum-ledger"
 [dependencies]
 sql-types = { path = "../types", version = "0.1.0" }
 chrono = { version = "0.4", features = ["serde"] }
-sha2 = "0.10"
+sha2 = "0.11"
 hex = "0.4"
